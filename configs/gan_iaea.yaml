@@ -1,0 +1,11 @@
+# baseline_gaga.py (parametri esatti Sarrut 2019)
+hdf5_train: data/elekta_6mv_train.h5
+n_epochs: 80000
+batch_size: 10000
+h_dim: 400
+z_dim: 6
+lr: 1e-5
+n_critic: 4
+log_every: 1000
+save_every: 10000
+output_dir: outputs/baseline_GAN_iaea

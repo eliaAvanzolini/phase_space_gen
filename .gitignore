@@ -1,0 +1,22 @@
+# Python
+**/__pycache__/
+*.pyc
+env/
+venv/
+
+# File di output pesanti (non caricarli su GitHub!)
+outputs/
+*.h5
+*.pt
+*.npy
+*.root
+# Windows metadata
+*:Zone.Identifier
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Cartelle pesanti (opzionale, rimuovile se vuoi caricarle)
+# data/
+# models/

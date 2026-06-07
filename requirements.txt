@@ -1,0 +1,37 @@
+# requirements.txt
+# ─────────────────────────────────────────────────────────────────────────────
+# Phase Space Generative Models — Dipendenze
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Core ML (GPU consigliata per training) ────────────────────────────────────
+torch>=2.1.0
+nflows>=0.14           # Neural Spline Flows
+zuko>=1.2.0            # Flow Matching (Conditional)
+torchdiffeq>=0.2.3     # ODE solver differenziabile per CFM
+
+# ── Dati e I/O ────────────────────────────────────────────────────────────────
+h5py>=3.9.0            # formato HDF5 (compatibile GATE)
+numpy>=1.24.0
+
+# ── Metriche e valutazione ────────────────────────────────────────────────────
+scipy>=1.11.0          # wasserstein_distance, ks_2samp
+scikit-learn>=1.3.0    # RandomForest per separability score
+
+# ── Visualizzazione ───────────────────────────────────────────────────────────
+matplotlib>=3.7.0
+
+# ── Opzionale: logging avanzato ───────────────────────────────────────────────
+# wandb>=0.16.0        # Weights & Biases (consigliato per esperimenti lunghi)
+# tensorboard>=2.14.0  # alternativa a W&B
+
+# ── Opzionale: simulazione GATE ───────────────────────────────────────────────
+# opengate>=10.0.0     # pip install opengate  (richiede Geant4)
+
+# ── Installazione ─────────────────────────────────────────────────────────────
+# CPU (sviluppo locale):
+#   pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
+#   pip install nflows zuko torchdiffeq h5py scipy scikit-learn matplotlib
+#
+# GPU (workstation del laboratorio):
+#   pip install torch  (installa automaticamente la versione CUDA)
+#   pip install nflows zuko torchdiffeq h5py scipy scikit-learn matplotlib

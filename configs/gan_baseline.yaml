@@ -1,0 +1,31 @@
+# configs/gan_baseline.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+# Configurazione WGAN-GP — baseline da replicare dai paper del gruppo
+# Riferimento: Sarrut et al. 2019 (doi:10.1088/1361-6560/ab3fc3)
+# ─────────────────────────────────────────────────────────────────────────────
+
+model: gan
+conditional: false      # true per cGAN (Dumas 2021)
+
+# ── Dati ──────────────────────────────────────────────────────────────────────
+n_samples: 1000000
+E_nom: 6.0
+jaw_x: 5.0
+jaw_y: 5.0
+
+# ── Architettura ──────────────────────────────────────────────────────────────
+# hidden_dims: [256, 512, 512, 256]   # sia G che D (hard-coded nel modello)
+
+# ── Training WGAN-GP ──────────────────────────────────────────────────────────
+epochs: 300
+batch_size: 2048
+lr: 0.0001              # lr più bassa per GAN (instabilità)
+val_every: 10
+save_every: 30
+seed: 42
+
+# Parametri specifici WGAN-GP
+# n_critic: 5           # step del critic per ogni step del generatore
+# lambda_gp: 10.0       # peso gradient penalty
+
+output_dir: outputs
