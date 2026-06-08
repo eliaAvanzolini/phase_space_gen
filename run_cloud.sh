@@ -46,7 +46,7 @@ cmd_gan() {
     echo "  Parametri: H=400, z_dim=6, lr=1e-5, RMSProp, 80k iter"
     python baseline_gaga.py \
         --hdf5_train "$DATA_TRAIN" \
-        --n_epochs   80000 \
+        --n_epochs   62 \
         --batch_size 10000 \
         --h_dim      400 \
         --z_dim      6 \
