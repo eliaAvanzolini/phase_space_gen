@@ -342,7 +342,7 @@ class NSFTrainer:
         }, path)
 
     def load(self, path: str):
-        ckpt = torch.load(path, map_location=self.device)
+        ckpt = torch.load(path, map_location=self.device, weights_only=False)
         self.model.load_state_dict(ckpt["model"])
         self.opt.load_state_dict(ckpt["opt"])
         self.history = ckpt.get("history", self.history)

@@ -58,26 +58,14 @@ OUR_TO_GATE = [5, 0, 1, None, 2, 3, 4]  # None = z=0 costante
 def build_gate_compatible_generator(model, model_type, stats, device="cpu"):
     """
     Crea un wrapper che si comporta come il generatore di gaga_phsp.
-
-    Il wrapper ha la stessa interfaccia del Generator di gaga_phsp:
-        - forward(z) → tensor (B, 7) in spazio fisico (non normalizzato)
-        - z_dim: dimensione latente
-
-    Per NSF e CFM, wrappa il metodo sample() in un'interfaccia GAN-compatibile.
+    Usa la denormalizzazione centralizzata del progetto per supportare nativamente
+    sia le coordinate cartesiane 6D che quelle sferiche 5D.
     """
     import torch
     import torch.nn as nn
-
-    col_names = stats.get("col_names", ["x", "y", "dx", "dy", "dz", "E"])
+    from data.synthetic_linac import denormalize_phase_space
 
     class GATECompatibleGenerator(nn.Module):
-        """
-        Wrapper che:
-        1. Riceve z ~ N(0,I) come input
-        2. Genera campioni nel spazio normalizzato
-        3. Denormalizza → spazio fisico
-        4. Riordina le colonne nel formato GATE: (E, x, y, z=0, dx, dy, dz)
-        """
         def __init__(self, inner_model, model_type, stats_dict):
             super().__init__()
             self.inner = inner_model
@@ -91,46 +79,120 @@ def build_gate_compatible_generator(model, model_type, stats, device="cpu"):
 
             with torch.no_grad():
                 if self.model_type == "gan":
-                    # GAN: z → sample direttamente
                     s_norm = self.inner(z)
                 elif self.model_type == "nsf":
-                    # NSF: ignora z, campiona dalla distribuzione appresa
                     s_norm = self.inner.sample(B)
                 elif self.model_type == "cfm":
-                    # CFM: ignora z, usa Euler veloce
                     s_norm = self.inner.sample_fast(B, n_steps=10)
                 else:
                     raise ValueError(f"Modello sconosciuto: {self.model_type}")
 
-            # Denormalizza: spazio normalizzato → fisico
-            s_phys = self._denormalize(s_norm.cpu().numpy())
+            # ── FIX: Usiamo la denormalizzazione ufficiale del progetto ──────
+            # Restituisce SEMPRE una matrice 7D ordinata: [x, y, z, dx, dy, dz, E]
+            s_phys = denormalize_phase_space(s_norm.cpu().numpy(), self.stats)
 
-            # Riordina in formato GATE: (E, x, y, z=0, dx, dy, dz)
             N = len(s_phys)
             gate_out = np.zeros((N, 7), dtype=np.float32)
 
-            # Ordine interno: (x, y, dx, dy, dz, E) → indici 0,1,2,3,4,5
-            gate_out[:, 0] = s_phys[:, 5]   # Ekine = E (col 5)
-            gate_out[:, 1] = s_phys[:, 0]   # X = x (col 0)
-            gate_out[:, 2] = s_phys[:, 1]   # Y = y (col 1)
-            gate_out[:, 3] = 0.0            # Z = 0 (piano isocentrico)
-            gate_out[:, 4] = s_phys[:, 2]   # dX = dx (col 2)
-            gate_out[:, 5] = s_phys[:, 3]   # dY = dy (col 3)
-            gate_out[:, 6] = s_phys[:, 4]   # dZ = dz (col 4)
+            # Riordina nel formato rigido richiesto da Geant4 / GATE 10
+            gate_out[:, 0] = s_phys[:, 6]   # Ekine = E (colonna 6)
+            gate_out[:, 1] = s_phys[:, 0]   # X = x (colonna 0)
+            gate_out[:, 2] = s_phys[:, 1]   # Y = y (colonna 1)
+            gate_out[:, 3] = s_phys[:, 2]   # Z = z_const (colonna 2)
+            gate_out[:, 4] = s_phys[:, 3]   # dX = dx (colonna 3)
+            gate_out[:, 5] = s_phys[:, 4]   # dY = dy (colonna 4)
+            gate_out[:, 6] = s_phys[:, 5]   # dZ = dz (colonna 5)
 
             return torch.from_numpy(gate_out).to(device)
 
-        def _denormalize(self, s_norm):
-            """Inverte la normalizzazione."""
-            col_names = self.stats.get("col_names", ["x", "y", "dx", "dy", "dz", "E"])
-            s_phys = s_norm.copy()
-            for i, col in enumerate(col_names):
-                mu    = self.stats.get(f"{col}_mu", 0.0)
-                sigma = self.stats.get(f"{col}_sigma", 1.0)
-                s_phys[:, i] = s_norm[:, i] * sigma + mu
-            return s_phys
-
     return GATECompatibleGenerator(model, model_type, stats)
+
+
+def load_model(checkpoint_path, model_type, device="cpu"):
+    """Carica il modello dal checkpoint rilevando dinamicamente ogni iperparametro."""
+    import torch
+
+    ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
+
+    if model_type == "gan":
+        from models.gan import PhaseSpaceGenerator
+        sd = ckpt.get("G") or ckpt.get("generator") or ckpt
+        cond_dim = 3 if any("cond" in k for k in sd.keys()) else 0
+        model = PhaseSpaceGenerator(cond_dim=cond_dim)
+        model.load_state_dict(sd)
+
+    elif model_type == "nsf":
+        from models.nsf import PhaseSpaceNSF
+        sd = ckpt.get("model") or ckpt
+        cond_dim = 3 if any("cond_encoder" in k for k in sd.keys()) else 0
+        
+        # 1. Rilevamento dinamico di dim (5D sferico o 6D cartesiano)
+        dim = 6
+        for k, v in sd.items():
+            if "permutation" in k and "perm" in k:
+                dim = v.shape[0]
+                break
+                
+        # 2. Rilevamento dinamico di hidden_dim
+        hidden_dim = 128
+        for k, v in sd.items():
+            if "transform_net.initial_layer.weight" in k:
+                hidden_dim = v.shape[0]
+                break
+                
+        # 3. Rilevamento dinamico di n_transforms
+        max_idx = -1
+        for k in sd.keys():
+            if "_transforms." in k:
+                idx_str = k.split("_transforms.")[1].split(".")[0]
+                if idx_str.isdigit():
+                    max_idx = max(max_idx, int(idx_str))
+        n_transforms = (max_idx + 1) // 2 if max_idx >= 0 else 6
+        
+        # 4. Rilevamento dinamico di n_bins
+        n_bins = 8
+        for k, v in sd.items():
+            if "transform_net.final_layer.bias" in k:
+                out_feats = v.shape[0]
+                for test_bins in [4, 8, 12, 16, 20]:
+                    if out_feats % (3 * test_bins - 1) == 0:
+                        n_bins = test_bins
+                break
+
+        model = PhaseSpaceNSF(dim=dim, cond_dim=cond_dim, n_transforms=n_transforms, hidden_dim=hidden_dim, n_bins=n_bins)
+        model.load_state_dict(sd)
+
+    elif model_type == "cfm":
+        from models.cfm import PhaseSpaceCFM
+        sd = ckpt.get("model") or ckpt
+        cond_dim = 3 if any("cond_embed" in k for k in sd.keys()) else 0
+        
+        # 1. Rilevamento dinamico di dim
+        dim = 6
+        if "velocity_net.output_proj.weight" in sd:
+            dim = sd["velocity_net.output_proj.weight"].shape[0]
+            
+        # 2. Rilevamento dinamico di hidden_dim
+        hidden_dim = 256
+        if "velocity_net.input_proj.weight" in sd:
+            hidden_dim = sd["velocity_net.input_proj.weight"].shape[0]
+            
+        # 3. FIX: Rilevamento dinamico reale di n_layers (residual blocks)
+        max_idx = -1
+        for k in sd.keys():
+            if "velocity_net.res_layers." in k:
+                idx = int(k.split("res_layers.")[1].split(".")[0])
+                max_idx = max(max_idx, idx)
+        n_layers = (max_idx + 1) if max_idx >= 0 else 4
+
+        model = PhaseSpaceCFM(dim=dim, cond_dim=cond_dim, n_layers=n_layers, hidden_dim=hidden_dim)
+        model.load_state_dict(sd)
+
+    else:
+        raise ValueError(f"Modello non riconosciuto: {model_type}")
+
+    model.to(device).eval()
+    return model
 
 
 def save_pth_for_gate(
@@ -207,57 +269,6 @@ def save_pth_for_gate(
     print(f"    gsource.position_keys  = ['X', 'Y', 'Z']")
     print(f"    gsource.direction_keys = ['dX', 'dY', 'dZ']")
 
-
-def load_model(checkpoint_path, model_type, device="cpu"):
-    """Carica il modello dal checkpoint."""
-    import torch
-
-    ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
-
-    if model_type == "gan":
-        from models.gan import PhaseSpaceGenerator
-        sd = ckpt.get("G") or ckpt.get("generator") or ckpt
-        cond_dim = 3 if any("cond" in k for k in sd.keys()) else 0
-        model = PhaseSpaceGenerator(cond_dim=cond_dim)
-        model.load_state_dict(sd)
-
-    elif model_type == "nsf":
-        from models.nsf import PhaseSpaceNSF
-        sd = ckpt.get("model") or ckpt
-        cond_dim = 3 if any("cond_encoder" in k for k in sd.keys()) else 0
-        # Infer dim: spherical models have 5D, cartesian 6D
-        # Check flow input size from first RandomPermutation
-        dim = 6  # default
-        for k, v in sd.items():
-            if "permutation" in k and "perm" in k:
-                dim = v.shape[0]; break
-        # Fallback: check stats col_names length
-        col_names = stats.get("col_names", [])
-        if col_names: dim = len(col_names)
-        model = PhaseSpaceNSF(dim=dim, cond_dim=cond_dim)
-        model.load_state_dict(sd)
-
-    elif model_type == "cfm":
-        from models.cfm import PhaseSpaceCFM
-        sd = ckpt.get("model") or ckpt
-        cond_dim = 3 if any("cond_embed" in k for k in sd.keys()) else 0
-        
-        # ─── MODIFICA: Rilevamento dinamico di hidden_dim ────────────────────
-        hidden_dim = 256  # Valore di default standard
-        if "velocity_net.input_proj.weight" in sd:
-            hidden_dim = sd["velocity_net.input_proj.weight"].shape[0]
-            print(f"  [INFO] Rilevato hidden_dim dal checkpoint: {hidden_dim}")
-        # ─────────────────────────────────────────────────────────────────────
-        
-        # Inseriamo hidden_dim nell'inizializzazione del modello
-        model = PhaseSpaceCFM(dim=6, cond_dim=cond_dim, hidden_dim=hidden_dim)
-        model.load_state_dict(sd)
-
-    else:
-        raise ValueError(f"Modello non riconosciuto: {model_type}")
-
-    model.to(device).eval()
-    return model
 
 
 def main():

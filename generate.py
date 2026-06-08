@@ -76,34 +76,75 @@ def parse_args():
 
 
 def load_model(args, device):
-    """Carica il modello dal checkpoint."""
+    """Carica il modello dal checkpoint in modo dinamico."""
     import torch
 
     ckpt = torch.load(args.checkpoint, map_location=device, weights_only=False)
 
-    # Inferisci dimensioni dal checkpoint
+    # Rilevamento e adattamento automatico delle dimensioni per evitare crash
     if args.model == "nsf":
         from models.nsf import PhaseSpaceNSF
-        # Tenta di inferire i parametri dallo state dict
         sd = ckpt["model"]
-        # Cerca il context encoder per capire se è condizionato
         cond_dim = 3 if any("cond_encoder" in k for k in sd.keys()) else 0
-        model = PhaseSpaceNSF(dim=6, cond_dim=cond_dim)
+        
+        dim = 6
+        for k, v in sd.items():
+            if "permutation" in k and "perm" in k:
+                dim = v.shape[0]
+                break
+        
+        hidden_dim = 128
+        for k, v in sd.items():
+            if "transform_net.initial_layer.weight" in k:
+                hidden_dim = v.shape[0]
+                break
+                
+        n_transforms = 6
+        max_idx = -1
+        for k in sd.keys():
+            if "_transforms." in k:
+                idx_str = k.split("_transforms.")[1].split(".")[0]
+                if idx_str.isdigit():
+                    max_idx = max(max_idx, int(idx_str))
+        if max_idx >= 0:
+            n_transforms = (max_idx + 1) // 2
+            
+        n_bins = 8
+        for k, v in sd.items():
+            if "transform_net.final_layer.bias" in k:
+                out_feats = v.shape[0]
+                for test_bins in [4, 8, 12, 16, 20]:
+                    if out_feats % (3 * test_bins - 1) == 0:
+                        n_bins = test_bins
+                break
+
+        model = PhaseSpaceNSF(dim=dim, cond_dim=cond_dim, n_transforms=n_transforms, hidden_dim=hidden_dim, n_bins=n_bins)
         model.load_state_dict(sd)
 
     elif args.model == "cfm":
         from models.cfm import PhaseSpaceCFM
         sd = ckpt["model"]
         cond_dim = 3 if any("cond_embed" in k for k in sd.keys()) else 0
-        # Inferisci hidden_dim dalla prima proiezione
+        
+        dim = 6
+        if "velocity_net.output_proj.weight" in sd:
+            dim = sd["velocity_net.output_proj.weight"].shape[0]
+            
         in_proj_shape = sd.get("velocity_net.input_proj.weight", None)
         hidden_dim = in_proj_shape.shape[0] if in_proj_shape is not None else 256
-        model = PhaseSpaceCFM(dim=6, cond_dim=cond_dim, n_layers=8, hidden_dim=512)
+        
+        n_layers = 4
+        for k in sd.keys():
+            if "velocity_net.res_layers." in k:
+                idx = int(k.split("res_layers.")[1].split(".")[0])
+                n_layers = max(n_layers, idx + 1)
+                
+        model = PhaseSpaceCFM(dim=dim, cond_dim=cond_dim, n_layers=n_layers, hidden_dim=hidden_dim)
         model.load_state_dict(sd)
 
     elif args.model == "gan":
         from models.gan import PhaseSpaceGenerator
-        sd = ckpt["generator"]
+        sd = ckpt.get("G") or ckpt.get("generator") or ckpt
         cond_dim = 3 if any("cond" in k for k in sd.keys()) else 0
         model = PhaseSpaceGenerator(cond_dim=cond_dim)
         model.load_state_dict(sd)
@@ -115,19 +156,15 @@ def load_model(args, device):
     return model, cond_dim
 
 
+
+
 def build_condition_tensor(args, n_samples, cond_stats, device):
-    """Costruisce il tensore di condizione normalizzato."""
     import torch
-    c_raw = np.array([[args.E_nom, args.jaw_x, args.jaw_y]], dtype=np.float32)
-    c_raw = np.tile(c_raw, (n_samples, 1))
-
-    # Normalizza con le stesse statistiche del training
-    mu    = np.array(cond_stats["mu"],    dtype=np.float32)
-    sigma = np.array(cond_stats["sigma"], dtype=np.float32)
-    c_norm = (c_raw - mu) / sigma
-
+    mu  = np.array(cond_stats["mu"],    dtype=np.float32)
+    sig = np.array(cond_stats["sigma"], dtype=np.float32)
+    c_raw  = np.tile([[args.E_nom, args.jaw_x, args.jaw_y]], (n_samples, 1))
+    c_norm = (c_raw - mu) / sig
     return torch.from_numpy(c_norm).to(device)
-
 
 def generate_samples(model, args, cond_stats, stats, device):
     """
