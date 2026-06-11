@@ -3,10 +3,8 @@
 
 Implementazione di **Neural Spline Flows (NSF)**, **Conditional Flow Matching (CFM)** e **WGAN-GP** per il phase space modeling di sorgenti di fasci medici (linac, SPECT).
 
-Sostituisce i file di phase space GATE tradizionali con un modello generativo che campiona vettori fisicamente coerenti in un singolo forward pass — senza rieseguire la simulazione completa della sorgente.
-
 ---
-
+<!--
 ## Struttura del progetto
 
 ```
@@ -164,3 +162,4 @@ Il modello lavora in **6D** (z è costante = 0 al piano isocentrico) e reinseris
 - [x] **Fase 3**: Conditional Flow Matching multi-config
 - [ ] **Fase 4**: validazione fisica downstream (dose in fantoccio GATE)
 - [ ] **Fase 5**: estensione a sorgenti SPECT
+-->
