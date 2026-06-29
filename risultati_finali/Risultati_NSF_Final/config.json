@@ -1,0 +1,33 @@
+{
+  "model": "nsf",
+  "conditional": false,
+  "data_path": "data/elekta_130mv_completo.h5",
+  "n_samples": 500000,
+  "E_nom": 6.0,
+  "jaw_x": 5.0,
+  "jaw_y": 5.0,
+  "epochs": 200,
+  "batch_size": 16384,
+  "lr": 3e-05,
+  "device": "auto",
+  "seed": 42,
+  "val_every": 5,
+  "save_every": 20,
+  "n_critic": 5,
+  "gan_hidden_dims": [
+    256,
+    512,
+    512,
+    256
+  ],
+  "spherical": true,
+  "rank_spatial": true,
+  "n_transforms": 12,
+  "n_bins": 16,
+  "hidden_dim": 256,
+  "tail_bound": 7.0,
+  "n_layers": 4,
+  "n_ode_steps": 100,
+  "output_dir": "outputs",
+  "run_name": "nsf_130mln_rank_final"
+}
