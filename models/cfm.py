@@ -102,6 +102,7 @@ class VelocityNet(nn.Module):
         context_dim: int = 32,
         hidden_dim:  int = 256,
         n_layers:    int = 4,
+
     ):
         super().__init__()
         self.dim  = dim
@@ -376,6 +377,7 @@ class CFMTrainer:
         weight_decay: float = 1e-5,
         clip_grad:    float = 1.0,
         scheduler_patience: int = 10,
+        epochs:       int = 200,
     ):
         self.model   = model.to(device)
         self.device  = device
@@ -389,7 +391,7 @@ class CFMTrainer:
 
         self.scheduler = optim.lr_scheduler.CosineAnnealingLR(
             self.opt,
-            T_max=200,    # adatta al numero di epoche totali
+            T_max=epochs,
             eta_min=1e-6,
         )
 

@@ -308,7 +308,7 @@ def run_training(args):
             dim=_dim_cfm, cond_dim=cond_dim,
             hidden_dim=args.hidden_dim, n_layers=args.n_layers,
         )
-        trainer = CFMTrainer(model, device=device, lr=args.lr)
+        trainer = CFMTrainer(model, device=device, lr=args.lr, epochs=args.epochs)
 
     elif args.model == "gan":
         from models.gan import PhaseSpaceGenerator, PhaseSpaceCritic, WGANGPTrainer
