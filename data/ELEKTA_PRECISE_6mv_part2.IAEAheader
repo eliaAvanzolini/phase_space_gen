@@ -1,0 +1,124 @@
+$IAEA_INDEX:
+301   // IAEA website: www-nds.iaea.org/phsp/photon/
+
+$TITLE:
+PHASESPACE in IAEA format for the NRC Elekta Precise linac at 6 MV
+ 
+
+$FILE_TYPE:
+0
+
+$CHECKSUM:
+4174332822 
+
+$RECORD_CONTENTS:
+    1     // X is stored ?
+    1     // Y is stored ?
+    0     // Z is stored ?
+    1     // U is stored ?
+    1     // V is stored ?
+    1     // W is stored ?
+    1     // Weight is stored ?
+    0     // Extra floats stored ?
+    2     // Extra longs stored ?
+    1     // Incremental history number stored in the extralong array [ 0] 
+    2     // LATCH EGS variable stored in the extralong array [ 1] 
+
+$RECORD_CONSTANT:
+    27.21     // Constant Z
+
+$RECORD_LENGTH:
+33
+
+$BYTE_ORDER:
+1234
+
+$ORIG_HISTORIES:
+170000000
+
+$PARTICLES:
+126494934
+
+$PHOTONS:
+125807762
+
+$ELECTRONS:
+672906
+
+$POSITRONS:
+14266
+
+$TRANSPORT_PARAMETERS:
+ Global ECUT= 0.7
+ Global PCUT= 0.01
+ Global SMAX= 1e10
+ ESTEPE= 0.25
+ XIMAX= 0.5
+ Boundary crossing algorithm= EXACT
+ Skin depth for BCA= 0
+ Electron-step algorithm= PRESTA-II
+ Spin effects= On
+ Brems angular sampling= KM
+ Brems cross sections= BH
+ Bound Compton scattering= Off
+ Pair angular sampling= Simple
+ Photoelectron angular sampling= Off
+ Rayleigh scattering= Off
+ Atomic relaxations= Off
+ Electron impact ionization= Off
+
+
+$MACHINE_TYPE:
+ Elekta Precise
+
+$MONTE_CARLO_CODE_VERSION:
+ EGSnrc V4-r2-3-0, BEAMnrc 2009
+
+$GLOBAL_PHOTON_ENERGY_CUTOFF:
+  0.01000 
+$GLOBAL_PARTICLE_ENERGY_CUTOFF:
+  0.70000 
+$COORDINATE_SYSTEM_DESCRIPTION:
+  Beam axis is along the Z axis, top of bremsstrahlung target at Z=0
+
+//  OPTIONAL INFORMATION
+
+$BEAM_NAME:
+
+$FIELD_SIZE:
+ Phase space data is above the MLC/photon jaws
+
+$NOMINAL_SSD:
+
+$MC_INPUT_FILENAME:
+
+$VARIANCE_REDUCTION_TECHNIQUES:
+ UBS with NBRSPL=20, range rejection with ESAVE=1.511 MeV everywhere except in
+ bremsstrahlung target where it was set to 0.7 MeV
+
+$INITIAL_SOURCE_DESCRIPTION:
+ BEAMnrc Source 19 with monoenergetic 5.75 electrons and a spot size of FWHM=0.15 cm
+
+$PUBLISHED_REFERENCE:
+ E.Tonkopi, M.R.McEwen, B.R.B.Walters and I.Kawrakow, Med.Phys. 32 (2005) 2918-2927
+ M.R.McEwen, I.Kawrakow and C.Ross, Med.Phys. 35 (2008) 950-958
+
+$AUTHORS:
+
+$INSTITUTION:
+
+$LINK_VALIDATION:
+
+$ADDITIONAL_NOTES:
+This is IAEA header as defined in the technical 
+report IAEA(NDS)-0484, Vienna, 2006
+
+$STATISTICAL_INFORMATION_PARTICLES:
+//        Weight        Wmin       Wmax       <E>         Emin         Emax    Particle
+      6.29038E+06       0.05       0.05      1.321       0.01001       5.749   PHOTONS
+          33645.3       0.05       0.05      1.691        0.6997        5.86   ELECTRONS
+            713.3       0.05       0.05      1.801        0.6999       4.756   POSITRONS
+
+$STATISTICAL_INFORMATION_GEOMETRY:
+ -19.5  19.5
+ -19.4999  19.499

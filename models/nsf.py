@@ -200,7 +200,12 @@ class PhaseSpaceNSF(nn.Module):
         """
         context = self._encode_context(c)
         with torch.no_grad():
-            return self.flow.sample(n_samples, context=context)
+            samples = self.flow.sample(n_samples, context=context)
+            # nflows restituisce (1, n_samples, dim) quando context è fornito
+            # oppure (n_samples, dim) senza context → squeeze per uniformare
+            if samples.dim() == 3:
+                samples = samples.squeeze(0)
+            return samples
 
     def _encode_context(self, c: Optional[torch.Tensor]) -> Optional[torch.Tensor]:
         if c is None or self.cond_encoder is None:

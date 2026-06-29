@@ -1,0 +1,97 @@
+$IAEA_INDEX:
+304   // IAEA website: www-nds.iaea.org/phsp/photon/
+
+$TITLE:
+PHASESPACE in IAEA format 
+ 
+
+$FILE_TYPE:
+0
+
+$CHECKSUM:
+4154167380 
+
+$RECORD_CONTENTS:
+    1     // X is stored ?
+    1     // Y is stored ?
+    0     // Z is stored ?
+    1     // U is stored ?
+    1     // V is stored ?
+    1     // W is stored ?
+    1     // Weight is stored ?
+    0     // Extra floats stored ?
+    2     // Extra longs stored ?
+    1     // Incremental history number stored in the extralong array [ 0] 
+    2     // LATCH EGS variable stored in the extralong array [ 1] 
+
+$RECORD_CONSTANT:
+    -0.0000     // Constant Z
+
+$RECORD_LENGTH:
+33
+
+$BYTE_ORDER:
+1234
+
+$ORIG_HISTORIES:
+83750000
+
+$PARTICLES:
+125883860
+
+$PHOTONS:
+124716165
+
+$ELECTRONS:
+1103458
+
+$POSITRONS:
+64237
+
+$TRANSPORT_PARAMETERS:
+
+$MACHINE_TYPE:
+
+$MONTE_CARLO_CODE_VERSION:
+
+$GLOBAL_PHOTON_ENERGY_CUTOFF:
+  0.00000 
+$GLOBAL_PARTICLE_ENERGY_CUTOFF:
+  0.00000 
+$COORDINATE_SYSTEM_DESCRIPTION:
+
+//  OPTIONAL INFORMATION
+
+$BEAM_NAME:
+
+$FIELD_SIZE:
+
+$NOMINAL_SSD:
+
+$MC_INPUT_FILENAME:
+
+$VARIANCE_REDUCTION_TECHNIQUES:
+
+$INITIAL_SOURCE_DESCRIPTION:
+
+$PUBLISHED_REFERENCE:
+
+$AUTHORS:
+
+$INSTITUTION:
+
+$LINK_VALIDATION:
+
+$ADDITIONAL_NOTES:
+This is IAEA header as defined in the technical 
+report IAEA(NDS)-0484, Vienna, 2006
+
+$STATISTICAL_INFORMATION_PARTICLES:
+//        Weight        Wmin       Wmax       <E>         Emin         Emax    Particle
+      6.23581E+06       0.05       0.05      2.056       0.01002       9.398   PHOTONS
+          55172.9       0.05       0.05      2.265        0.6997       9.372   ELECTRONS
+          3211.85       0.05       0.05      2.594        0.6997       8.086   POSITRONS
+
+$STATISTICAL_INFORMATION_GEOMETRY:
+ -19.5  19.5
+ -19.4994  19.4999

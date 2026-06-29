@@ -1,0 +1,34 @@
+# configs/cfm_conditional_multi_energy.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+# CFM condizionale su multi-energia (6MV + 10MV) — Strada B
+#
+# Uso:
+#   python train.py --config configs/cfm_conditional_multi_energy.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+
+model: cfm
+conditional: true
+spherical: true
+rank_spatial: true
+
+# ── Dati ──────────────────────────────────────────────────────────────────────
+data_path: data/elekta_multi_energy.h5
+
+# ── Architettura ──────────────────────────────────────────────────────────────
+hidden_dim: 512
+n_layers: 6
+
+# ── Training ──────────────────────────────────────────────────────────────────
+epochs: 10              # Settato a 10 per test — aumentare sul cluster (500+)
+batch_size: 16384
+lr: 5e-5
+val_every: 2
+save_every: 5
+seed: 42
+
+# ── Inferenza ─────────────────────────────────────────────────────────────────
+n_ode_steps: 500
+
+# ── Output ────────────────────────────────────────────────────────────────────
+output_dir: outputs
+run_name: cfm_conditional_6mv_10mv

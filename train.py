@@ -31,6 +31,7 @@ import argparse
 import os
 import sys
 import json
+import yaml
 import time
 import numpy as np
 from pathlib import Path
@@ -107,7 +108,33 @@ def parse_args():
     p.add_argument("--run_name",   type=str, default=None,
                    help="Nome del run (default: model_timestamp)")
 
-    return p.parse_args()
+    # Config file
+    p.add_argument("--config", type=str, default=None,
+                   help="Path a file YAML con configurazione. "
+                        "I valori nel YAML forniscono i default; "
+                        "i flag CLI hanno sempre priorità.")
+
+    # ── Parse e merge YAML → CLI ──────────────────────────────────────────
+    args = p.parse_args()
+
+    if args.config:
+        with open(args.config) as f:
+            cfg = yaml.safe_load(f)
+        print(f"  Config YAML caricato: {args.config}")
+        # YAML fornisce i default, CLI ha priorità
+        for k, v in cfg.items():
+            if k == "config":
+                continue  # evita ricorsione
+            if hasattr(args, k):
+                # Se il valore CLI è il default di argparse, usa il YAML
+                default_val = p.get_default(k)
+                current_val = getattr(args, k)
+                if current_val == default_val:
+                    setattr(args, k, v)
+            else:
+                setattr(args, k, v)
+
+    return args
 
 
 def setup_output_dir(args) -> Path:
@@ -141,6 +168,18 @@ def prepare_data(args, out_dir: Path):
         from data.synthetic_linac import load_phase_space_hdf5
         ps, conditions = load_phase_space_hdf5(args.data_path)
         print(f"  Caricati {len(ps):,} vettori di phase space")
+
+        # Check: se --conditional è attivo, il file DEVE avere /conditions
+        if args.conditional and conditions is None:
+            print(f"\n  [ERROR] --conditional attivo ma il file HDF5 non contiene "
+                  f"il dataset 'conditions'.")
+            print(f"  Opzione 1: Ricrea il file con prepare_conditional_data.py")
+            print(f"  Opzione 2: Rimuovi --conditional per training non condizionato")
+            sys.exit(1)
+        if not args.conditional and conditions is not None:
+            print(f"  [INFO] Il file contiene conditions ma --conditional non è attivo.")
+            print(f"         Le condizioni verranno ignorate. Usa --conditional per attivarle.")
+            conditions = None
 
     elif args.conditional:
         # ── Dataset multi-condizione sintetico ────────────────────────────
@@ -443,6 +482,18 @@ def run_training(args):
     )
     print(f"\n  Campioni generati salvati: {out_dir}/generated_ps.h5")
     print(f"  Uso in GATE: impostare come sorgente il file HDF5")
+
+    # ── Plot curve di training ────────────────────────────────────────────
+    try:
+        from utils.plot_training import plot_training_history
+        plot_training_history(
+            trainer.history,
+            model_name=args.model,
+            save_path=str(out_dir / "training_history.png"),
+        )
+    except Exception as e:
+        print(f"  [WARNING] Impossibile generare plot training history: {e}")
+
     print(f"\n  Training completato! Output in: {out_dir}")
 
     return report

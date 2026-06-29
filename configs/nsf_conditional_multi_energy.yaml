@@ -1,0 +1,33 @@
+# configs/nsf_conditional_multi_energy.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+# NSF condizionale su multi-energia (6MV + 10MV) — Strada B
+#
+# Uso:
+#   python train.py --config configs/nsf_conditional_multi_energy.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+
+model: nsf
+conditional: true
+spherical: true
+rank_spatial: true
+
+# ── Dati ──────────────────────────────────────────────────────────────────────
+data_path: data/elekta_multi_energy.h5
+
+# ── Architettura ──────────────────────────────────────────────────────────────
+n_transforms: 12
+n_bins: 16
+hidden_dim: 256
+tail_bound: 7.0
+
+# ── Training ──────────────────────────────────────────────────────────────────
+epochs: 10              # Settato a 10 per test — aumentare sul cluster (1500+)
+batch_size: 16384
+lr: 3e-5
+val_every: 2
+save_every: 5
+seed: 42
+
+# ── Output ────────────────────────────────────────────────────────────────────
+output_dir: outputs
+run_name: nsf_conditional_6mv_10mv
