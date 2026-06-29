@@ -85,7 +85,7 @@ def read_iaea_phsp(
             # 3. Rimuovi il picco di annichilazione (se richiesto)
             if remove_511:
                 valid &= ~((E_abs > 0.505) & (E_abs < 0.520))
-
+            valid &= (np.abs(X) <= 7.5) & (np.abs(Y) <= 7.5)
             ps = np.column_stack([
                 X[valid], Y[valid], Z[valid],
                 u[valid], v[valid], w[valid],

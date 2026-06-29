@@ -20,3 +20,13 @@ __pycache__/
 # Cartelle pesanti (opzionale, rimuovile se vuoi caricarle)
 # data/
 # models/
+
+# --- Esclusioni specifiche della validazione dosimetrica ---
+*.IAEAphsp
+*.sh
+jobs/
+logs/
+recupero_istantaneo.py
+patch_eval_cfm.py
+patch_eval_leakage.py
+fix_nsf_eval.py

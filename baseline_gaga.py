@@ -6,38 +6,7 @@ Replica fedele del paper Sarrut et al. 2019:
 modelling in Monte Carlo simulations"
 DOI: 10.1088/1361-6560/ab3fc3
 
-Implementa ESATTAMENTE l'architettura e i parametri della Sezione 2.3:
-    - 3 hidden layers, H = 400 neuroni ciascuno
-    - Attivazione ReLU su tutti i layer (eccetto ultimo G → nessuna)
-    - z_dim = 6 per linac (dimensione variabile latente)
-    - Ottimizzatore: RMSProp, lr = 1e-5
-    - Batch size = 10,000
-    - D update freq / G update freq = 4 : 1
-    - WGAN weight clipping: [-0.01, 0.01]
-    - Epoche: 80,000
-
-Produce le figure del paper:
-    - Fig. 2: distribuzioni marginali delle 6 dimensioni
-    - Fig. 3: matrici di correlazione (PHSP vs GAN)
-    - Fig. 6: distribuzione delle differenze relative (Δ%) con incertezza statistica
-
-Uso:
-    # Con dati sintetici (test immediato, nessun dato GATE richiesto)
-    python baseline_gaga.py --synthetic --n_epochs 1000 --quick_test
-
-    # Con dati IAEA reali (formato .npy, shape N×6)
-    python baseline_gaga.py --phsp_train linac_6mv_train.npy \\
-                             --phsp_eval  linac_6mv_eval.npy \\
-                             --n_epochs 80000
-
-    # Con file HDF5 del nostro progetto
-    python baseline_gaga.py --hdf5_train data/ps_6mv_10x10.h5 \\
-                             --n_epochs 80000
-
-Dati IAEA reali:
-    https://www-nds.iaea.org/phsp/photon/
-    Scaricare: Elekta_6MV_PRECISE_phsp_scan.zip
-    Formato: ROOT/IAEA → convertire con convert_iaea.py (script incluso)
+VERSIONE REPLICA 100% PURA: DUE FILE REALI SEPARATI (TRAIN VS EVAL INDIPENDENTE)
 """
 
 import sys
@@ -74,28 +43,19 @@ from data.synthetic_linac import (
 )
 
 # ─── Colonne del phase space (ordine del paper Sarrut 2019) ───────────────────
-# Il paper usa z fisso e lavora su 6D: E, x, y, dx, dy, dz
 COLUMNS_PAPER = ["E", "x", "y", "dx", "dy", "dz"]
 COLUMNS_UNITS = ["E [MeV]", "x [cm]", "y [cm]", "dx", "dy", "dz"]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 1. ARCHITETTURA ESATTA DEL PAPER (Sezione 2.3)
+# 1. ARCHITETTURA DI SARRUT (Sezione 2.3) — OUTPUT CON SIGMOIDE
 # ═══════════════════════════════════════════════════════════════════════════════
 
 class Generator(nn.Module):
     """
     Generator G: z → x_fake
-
-    Architettura dal paper:
-        - Input: z ∈ R^z_dim da N(0,1)
-        - 3 hidden layers da H=400 neuroni
-        - Attivazione: ReLU su tutti (nel paper "ReLU per tutti tranne ultimo di G")
-        - Output lineare (no activation nell'ultimo layer)
-        - Totale pesi: ~500k
-
-    Nota: il paper usa ReLU standard (NON LeakyReLU) per il generatore.
-    Abbiamo verificato questo dal codice sorgente gaga_phsp/gaga_model.py.
+    Architettura esatta dal paper: output 6D confinato in [0, 1] tramite nn.Sigmoid().
+    Le variabili dx, dy, dz sono indipendenti durante tutto l'addestramento.
     """
 
     def __init__(self, x_dim: int = 6, z_dim: int = 6, h_dim: int = 400):
@@ -104,20 +64,16 @@ class Generator(nn.Module):
         self.x_dim = x_dim
 
         self.net = nn.Sequential(
-            # Input layer
             nn.Linear(z_dim, h_dim),
             nn.ReLU(),
-            # Hidden layer 1
             nn.Linear(h_dim, h_dim),
             nn.ReLU(),
-            # Hidden layer 2
             nn.Linear(h_dim, h_dim),
             nn.ReLU(),
-            # Output layer — NESSUNA attivazione (come da paper)
-            nn.Linear(h_dim, x_dim),
+            nn.Linear(h_dim, x_dim),  
+            nn.Sigmoid()  # Forza l'output tra 0 e 1 come da paper
         )
 
-        # Kaiming initialization (come nel codice sorgente gaga_phsp)
         for p in self.parameters():
             if p.ndimension() > 1:
                 nn.init.kaiming_normal_(p)
@@ -126,24 +82,13 @@ class Generator(nn.Module):
         return self.net(z)
 
     def sample(self, n: int, device: str = "cpu") -> torch.Tensor:
-        """Genera n campioni dal prior N(0,I)."""
         with torch.no_grad():
             z = torch.randn(n, self.z_dim, device=device)
             return self.forward(z)
 
 
 class Discriminator(nn.Module):
-    """
-    Discriminator (Critic) D: x → scalar score
-
-    Architettura dal paper:
-        - Input: x ∈ R^6
-        - 3 hidden layers da H=400 neuroni
-        - Attivazione: ReLU
-        - Output: scalare (nessun sigmoid — WGAN)
-
-    Il critic non produce una probabilità ma uno score scalare non limitato.
-    """
+    """Discriminator (Critic) D: x → scalar score"""
 
     def __init__(self, x_dim: int = 6, h_dim: int = 400):
         super().__init__()
@@ -167,38 +112,23 @@ class Discriminator(nn.Module):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 class WGANTrainer:
-    """
-    WGAN training loop fedele al paper Sarrut 2019.
+    """WGAN training loop fedele al paper Sarrut 2019."""
 
-    Parametri esatti del paper (Sezione 2.3):
-        - Optimizer: RMSProp (NON Adam — il paper specifica RMSProp)
-        - lr = 1e-5
-        - Batch size: 10,000
-        - n_critic = 4 (4 update D per 1 update G)
-        - Weight clipping: [-0.01, 0.01]
-        - 80,000 epoche
-
-    Loss functions (eq. 1 e 2 del paper):
-        J_D = E_z[D(G(z))] - E_x[D(x)]   (da massimizzare → minimizza il negativo)
-        J_G = -E_z[D(G(z))]               (da minimizzare)
-    """
-
-    CLAMP = 0.01   # paper: "clamped to [-0.01, 0.01]"
+    CLAMP = 0.01
 
     def __init__(
         self,
         G: Generator,
         D: Discriminator,
         device: str = "cpu",
-        lr: float = 1e-5,       # paper: lr = 1e-5
-        n_critic: int = 4,      # paper: "four discriminator updates per one generator"
+        lr: float = 1e-5,
+        n_critic: int = 4,
     ):
         self.G = G.to(device)
         self.D = D.to(device)
         self.device = device
         self.n_critic = n_critic
 
-        # RMSProp come specificato nel paper (NON Adam)
         self.opt_G = optim.RMSprop(G.parameters(), lr=lr)
         self.opt_D = optim.RMSprop(D.parameters(), lr=lr)
 
@@ -211,38 +141,28 @@ class WGANTrainer:
         return x.to(self.device)
 
     def train_step(self, real_batch: torch.Tensor) -> dict:
-        """
-        Esegue un'epoca completa: n_critic step D + 1 step G.
-
-        Corrisponde esattamente alla procedura descritta nella Sezione 2.2.
-        """
         real = self._to(real_batch)
         B = real.size(0)
 
-        # ── n_critic aggiornamenti del Discriminator ────────────────────────
         J_D_accum = 0.0
         for _ in range(self.n_critic):
             z    = torch.randn(B, self.G.z_dim, device=self.device)
             fake = self.G(z).detach()
 
-            # J_D = E_z[D(G(z))] - E_x[D(x)]  (eq. 1, minimizzato con segno -)
             J_D = self.D(fake).mean() - self.D(real).mean()
 
             self.opt_D.zero_grad()
             J_D.backward()
             self.opt_D.step()
 
-            # Weight clipping WGAN: theta_D ∈ [-0.01, 0.01]
             for p in self.D.parameters():
                 p.data.clamp_(-self.CLAMP, self.CLAMP)
 
             J_D_accum += J_D.item()
 
-        # ── 1 aggiornamento del Generator ───────────────────────────────────
         z    = torch.randn(B, self.G.z_dim, device=self.device)
         fake = self.G(z)
 
-        # J_G = -E_z[D(G(z))]  (eq. 2)
         J_G = -self.D(fake).mean()
 
         self.opt_G.zero_grad()
@@ -256,7 +176,6 @@ class WGANTrainer:
 
     @torch.no_grad()
     def val_loss(self, val_tensor: torch.Tensor) -> float:
-        """J_D sul validation set."""
         self.D.eval()
         val = self._to(val_tensor)
         B   = min(10000, len(val))
@@ -276,68 +195,42 @@ class WGANTrainer:
             "opt_D": self.opt_D.state_dict(),
             "history": self.history,
         }, path)
-        print(f"  Checkpoint salvato: {path}")
+        print(f"   Checkpoint salvato: {path}")
 
     def load(self, path: str):
         ckpt = torch.load(path, map_location=self.device)
         self.G.load_state_dict(ckpt["G"])
         self.D.load_state_dict(ckpt["D"])
         self.history = ckpt.get("history", self.history)
-        print(f"  Checkpoint caricato: {path}")
+        print(f"   Checkpoint caricato: {path}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 3. PREPROCESSING DEI DATI (come nel paper)
+# 3. PREPROCESSING UNIFICATO PER SINGOLO FILE
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def load_and_prepare(
-    source,
-    n_train: int = None,
-    n_eval: int = None,
-    seed: int = 42,
-):
-    """
-    Carica e prepara i dati nel formato del paper.
-
-    Il paper usa 6 dimensioni: (E, x, y, dx, dy, dz)
-    z è fisso e scartato.
-
-    Ordine colonne nel nostro formato: (x, y, z, dx, dy, dz, E)
-    → riordina in: (E, x, y, dx, dy, dz)  come il paper.
-
-    Normalizzazione: il paper NON normalizza esplicitamente i dati
-    (la rete impara la scala direttamente). Manteniamo questo per
-    fedeltà alla baseline.
-
-    Parameters
-    ----------
-    source : np.ndarray (N,7) o str (path HDF5) o "synthetic"
-    """
+def load_and_prepare_file(source, seed=42):
+    """Carica un singolo file specifico e lo formatta a 6D (E, x, y, dx, dy, dz)"""
     if isinstance(source, str) and source == "synthetic":
-        print("  Generazione dati sintetici (6MV 10x10)...")
-        ps7 = generate_phase_space(
-            n_samples=max(n_train or 0, n_eval or 0) + 100_000,
-            E_nom=6.0, jaw_x=5.0, jaw_y=5.0, seed=seed
-        )
+        print("   Generazione dati sintetici (6MV 10x10)...")
+        ps7 = generate_phase_space(n_samples=2_000_000, E_nom=6.0, jaw_x=5.0, jaw_y=5.0, seed=seed)
     elif isinstance(source, str) and source.endswith(".h5"):
         ps7, _ = load_phase_space_hdf5(source)
     elif isinstance(source, str) and source.endswith(".npy"):
         ps7_or_6 = np.load(source)
-        # Se già 6D (formato IAEA pre-convertito), usa direttamente
         if ps7_or_6.shape[1] == 6:
             ps7 = np.column_stack([
-                ps7_or_6[:, 1], ps7_or_6[:, 2],  # x, y
-                np.zeros(len(ps7_or_6)),           # z=0
-                ps7_or_6[:, 3], ps7_or_6[:, 4],   # dx, dy
-                ps7_or_6[:, 5],                    # dz
-                ps7_or_6[:, 0],                    # E
+                ps7_or_6[:, 1], ps7_or_6[:, 2],
+                np.zeros(len(ps7_or_6)),
+                ps7_or_6[:, 3], ps7_or_6[:, 4],
+                ps7_or_6[:, 5],
+                ps7_or_6[:, 0],
             ])
         else:
             ps7 = ps7_or_6
     else:
-        ps7 = source  # già np.ndarray (N,7)
+        ps7 = source
 
-    # Riordina colonne: (x,y,z,dx,dy,dz,E) → (E,x,y,dx,dy,dz)  [ordine paper]
     ps6 = np.column_stack([
         ps7[:, 6],   # E
         ps7[:, 0],   # x
@@ -346,23 +239,7 @@ def load_and_prepare(
         ps7[:, 4],   # dy
         ps7[:, 5],   # dz
     ]).astype(np.float32)
-
-    print(f"  Dati totali: {len(ps6):,} campioni, shape {ps6.shape}")
-    print(f"  Range E: [{ps6[:,0].min():.3f}, {ps6[:,0].max():.3f}] MeV")
-    print(f"  Range x: [{ps6[:,1].min():.2f}, {ps6[:,1].max():.2f}] cm")
-
-    # Split train/eval (come il paper: due file separati)
-    rng = np.random.default_rng(seed)
-    perm = rng.permutation(len(ps6))
-
-    n_tr = n_train or int(0.5 * len(ps6))
-    n_ev = n_eval  or min(int(0.5 * len(ps6)), n_tr)
-
-    train = ps6[perm[:n_tr]]
-    eval_ = ps6[perm[n_tr:n_tr + n_ev]]
-
-    print(f"  Train: {len(train):,}  |  Eval: {len(eval_):,}")
-    return train, eval_, ps6
+    return ps6
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -377,10 +254,6 @@ def plot_fig2_marginals(
     n_bins: int = 100,
     n_subsample: int = 100_000,
 ):
-    """
-    Replica della Figura 2 del paper:
-    Distribuzioni marginali delle 6 dimensioni — PHSP vs GAN.
-    """
     rng = np.random.default_rng(0)
     n   = min(n_subsample, len(phsp), len(gan))
     p   = phsp[rng.choice(len(phsp), n, replace=False)]
@@ -408,7 +281,7 @@ def plot_fig2_marginals(
     plt.tight_layout()
     plt.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.close()
-    print(f"  Fig. 2 salvata: {save_path}")
+    print(f"   Fig. 2 salvata: {save_path}")
 
 
 def plot_fig3_correlation(
@@ -417,10 +290,6 @@ def plot_fig3_correlation(
     save_path: str,
     n_subsample: int = 100_000,
 ):
-    """
-    Replica della Figura 3 del paper:
-    Matrici di correlazione (coefficiente di Pearson normalizzato) per PHSP e GAN.
-    """
     rng = np.random.default_rng(0)
     n   = min(n_subsample, len(phsp), len(gan))
     p   = phsp[rng.choice(len(phsp), n, replace=False)]
@@ -428,9 +297,6 @@ def plot_fig3_correlation(
 
     corr_p = np.corrcoef(p.T)
     corr_g = np.corrcoef(g.T)
-
-    # Maschera triangolo superiore (solo triangolo inferiore come nel paper)
-    mask = np.triu(np.ones_like(corr_p, dtype=bool), k=1)
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
@@ -440,7 +306,6 @@ def plot_fig3_correlation(
         ax.set_yticks(range(6)); ax.set_yticklabels(COLUMNS_PAPER, fontsize=10)
         ax.set_title(title, fontsize=11, fontweight="bold")
 
-        # Annota valori (solo triangolo inferiore come nel paper)
         for ii in range(6):
             for jj in range(ii):
                 v = corr[ii, jj]
@@ -453,44 +318,27 @@ def plot_fig3_correlation(
     plt.tight_layout()
     plt.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.close()
-    print(f"  Fig. 3 salvata: {save_path}")
+    print(f"   Fig. 3 salvata: {save_path}")
 
 
 def compute_fig6_differences(
     phsp1: np.ndarray,
     phsp2: np.ndarray,
     gan:   np.ndarray,
-    n_voxels: int = 10_000,
     seed: int = 0,
 ):
-    """
-    Simula la metrica di Figura 6 del paper:
-    Distribuzione delle differenze relative Δ(k) = (D_PHSP2(k) - D_src(k)) / D_max
-
-    In assenza di una simulazione GATE downstream, approssimiamo la dose
-    come la somma dell'energia depositata in voxel pseudocasori.
-    Questo è un proxy della metrica del paper ma sufficiente per la baseline.
-
-    Returns
-    -------
-    delta_phsp : differenze PHSP1 vs PHSP2
-    delta_gan  : differenze PHSP2 vs GAN
-    """
     rng = np.random.default_rng(seed)
-    n   = min(50_000, len(phsp1), len(phsp2), len(gan))
+    n   = min(100_000, len(phsp1), len(phsp2), len(gan))
 
-    # Istogramma dell'energia depositata in voxel spaziali proxy (x,y bins)
-    # Come nel paper: water box 20×20×20 cm³, voxel 4mm³
     n_bins_xy = 50
-    r = 10.0  # semi-range cm
+    r = 10.0
 
     def dose_map(ps):
-        """Proxy: somma energia per bin (x, y) → distribuzione 1D."""
         H, _, _ = np.histogram2d(
             ps[:n, 1], ps[:n, 2],
             bins=n_bins_xy,
             range=[[-r, r], [-r, r]],
-            weights=ps[:n, 0],  # peso = energia
+            weights=ps[:n, 0],
         )
         return H.flatten()
 
@@ -499,10 +347,10 @@ def compute_fig6_differences(
     Dg = dose_map(gan)
 
     D_max = D2.max()
-    mask  = D2 > 0.1 * D_max  # solo voxel > 10% del massimo
+    mask  = D2 > 0.1 * D_max
 
-    delta_phsp = (D2[mask] - D1[mask]) / D_max * 100  # in %
-    delta_gan  = (D2[mask] - Dg[mask]) / D_max * 100  # in %
+    delta_phsp = (D2[mask] - D1[mask]) / D_max * 100
+    delta_gan  = (D2[mask] - Dg[mask]) / D_max * 100
 
     return delta_phsp, delta_gan
 
@@ -513,10 +361,6 @@ def plot_fig6_differences(
     save_path: str,
     label: str = "Elekta 6 MV",
 ):
-    """
-    Replica della Figura 6 del paper (sinistra):
-    Istogramma delle differenze relative in %.
-    """
     fig, ax = plt.subplots(figsize=(7, 5))
 
     lo = min(delta_phsp.min(), delta_gan.min()) * 1.2
@@ -524,9 +368,9 @@ def plot_fig6_differences(
     bins = np.linspace(max(lo, -5), min(hi, 5), 80)
 
     ax.hist(delta_phsp, bins=bins, color="#4472C4", alpha=0.65,
-            label=f"PHSP1 vs PHSP2  μ={delta_phsp.mean():.2f}%", histtype="stepfilled")
+            label=f"PHSP1 vs PHSP2   μ={delta_phsp.mean():.2f}%", histtype="stepfilled")
     ax.hist(delta_gan, bins=bins, color="#FF0000", alpha=0.65,
-            label=f"PHSP1 vs GAN   μ={delta_gan.mean():.2f}%", histtype="stepfilled")
+            label=f"PHSP2 vs GAN   μ={delta_gan.mean():.2f}%", histtype="stepfilled")
 
     ax.axvline(delta_phsp.mean(), color="#000080", linewidth=1.5)
     ax.axvline(delta_gan.mean(),  color="#FF0000", linewidth=1.5)
@@ -540,20 +384,16 @@ def plot_fig6_differences(
     plt.tight_layout()
     plt.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.close()
-    print(f"  Fig. 6 salvata: {save_path}")
+    print(f"   Fig. 6 salvata: {save_path}")
 
 
 def plot_training_curves(history: dict, save_path: str):
-    """
-    Replica della Figura 1 del paper: J_D e J_G in funzione delle epoche.
-    """
     fig, ax = plt.subplots(figsize=(10, 5))
 
     epochs = history["epoch"]
     ax.plot(epochs, history["J_G"], color="red",   alpha=0.7, linewidth=0.8, label="G_loss")
     ax.plot(epochs, history["J_D"], color="blue",  alpha=0.7, linewidth=0.8, label="D_loss")
     if history["J_D_val"]:
-        # Subsample val loss (calcolata ogni val_every epoche)
         val_epochs = [history["epoch"][i] for i in range(0, len(history["epoch"]),
                       max(1, len(history["epoch"]) // len(history["J_D_val"])))]
         val_epochs = val_epochs[:len(history["J_D_val"])]
@@ -570,7 +410,7 @@ def plot_training_curves(history: dict, save_path: str):
     plt.tight_layout()
     plt.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.close()
-    print(f"  Curve di training salvate: {save_path}")
+    print(f"   Curve di training salvate: {save_path}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -578,18 +418,17 @@ def plot_training_curves(history: dict, save_path: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def compute_metrics(phsp: np.ndarray, gan: np.ndarray, label: str = "") -> dict:
-    """Calcola W1 per ogni dimensione + mean, come metrica principale di confronto."""
     from scipy.stats import wasserstein_distance
     rng = np.random.default_rng(0)
-    n   = min(50_000, len(phsp), len(gan))
+    n   = min(100_000, len(phsp), len(gan))
     p   = phsp[rng.choice(len(phsp), n, replace=False)]
     g   = gan[rng.choice(len(gan),   n, replace=False)]
 
-    print(f"\n  {'─'*55}")
-    print(f"  Metriche W1 — {label}")
-    print(f"  {'─'*55}")
-    print(f"  {'Canale':<8} {'W1':>12}  {'mu_PHSP':>10}  {'mu_GAN':>10}  {'σ_PHSP':>10}  {'σ_GAN':>10}")
-    print(f"  {'─'*55}")
+    print(f"\n   {'─'*55}")
+    print(f"   Metriche W1 — {label}")
+    print(f"   {'─'*55}")
+    print(f"   {'Canale':<8} {'W1':>12}  {'mu_PHSP':>10}  {'mu_GAN':>10}  {'σ_PHSP':>10}  {'σ_GAN':>10}")
+    print(f"   {'─'*55}")
 
     results = {}
     for i, col in enumerate(COLUMNS_PAPER):
@@ -601,48 +440,68 @@ def compute_metrics(phsp: np.ndarray, gan: np.ndarray, label: str = "") -> dict:
             "sig_phsp":float(p[:, i].std()),
             "sig_gan": float(g[:, i].std()),
         }
-        print(f"  {col:<8} {w1:>12.6f}  "
+        print(f"   {col:<8} {w1:>12.6f}  "
               f"{p[:,i].mean():>10.4f}  {g[:,i].mean():>10.4f}  "
               f"{p[:,i].std():>10.4f}  {g[:,i].std():>10.4f}")
 
     w1_mean = np.mean([v["w1"] for v in results.values()])
-    print(f"  {'mean':<8} {w1_mean:>12.6f}")
+    print(f"   {'mean':<8} {w1_mean:>12.6f}")
     results["mean_w1"] = float(w1_mean)
     return results
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 6. MAIN TRAINING LOOP
+# 6. MAIN TRAINING LOOP (Replica Pura Sarrut 2019)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def train(args):
-    """Pipeline completa: dati → training → figure del paper."""
-
     out_dir = Path(args.output_dir) / f"gaga_baseline_{time.strftime('%Y%m%d_%H%M%S')}"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Device
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"\n{'='*55}")
-    print(f"  GAGA Baseline — Sarrut 2019")
-    print(f"  Device: {device}  |  Epoche: {args.n_epochs}")
-    print(f"  Output: {out_dir}")
+    print(f"   GAGA Baseline Replica Assoluta — Sarrut 2019")
+    print(f"   Device: {device}  |  Epoche: {args.n_epochs}")
+    print(f"   Output: {out_dir}")
     print(f"{'='*55}")
 
-    # ── Dati ──────────────────────────────────────────────────────────────────
-    print("\n  Caricamento dati...")
-    src = "synthetic" if args.synthetic else (args.hdf5_train or args.phsp_train)
-    train_data, eval_data, all_data = load_and_prepare(
-        src,
-        n_train=args.n_train,
-        n_eval=args.n_eval,
-        seed=args.seed,
-    )
+    # 1. Caricamento indipendente dei due file sani (100% Statistica ciascuno)
+    print("\n   Caricamento dataset di TRAINING (PHSP1)...")
+    src_train = "synthetic" if args.synthetic else args.hdf5_train
+    train_data = load_and_prepare_file(src_train, seed=args.seed)
 
-    # Salva copia eval per riferimento (PHSP1 e PHSP2 del paper)
-    n_half = len(eval_data) // 2
-    phsp1 = eval_data[:n_half]   # PHSP1 (primo eval set)
-    phsp2 = eval_data[n_half:]   # PHSP2 (secondo eval set, ground truth)
+    print("   Caricamento dataset di EVALUATION (PHSP2)...")
+    src_eval = "synthetic" if args.synthetic else args.hdf5_eval
+    if not src_eval:
+        raise ValueError("[ERROR] Devi fornire sia --hdf5_train che --hdf5_eval per la replica pura!")
+    eval_data = load_and_prepare_file(src_eval, seed=args.seed + 1)
+
+    # 2. COLLIMAZIONE FISICA GEOMETRICA DI SARRUT (Scatola d'acqua +-10 cm)
+    mask_train = (train_data[:, 1] >= -10.0) & (train_data[:, 1] <= 10.0) & \
+                 (train_data[:, 2] >= -10.0) & (train_data[:, 2] <= 10.0)
+    train_data = train_data[mask_train]
+
+    mask_eval = (eval_data[:, 1] >= -10.0) & (eval_data[:, 1] <= 10.0) & \
+                (eval_data[:, 2] >= -10.0) & (eval_data[:, 2] <= 10.0)
+    eval_data = eval_data[mask_eval]
+
+    print(f"\n   Statistiche Post-Collimazione:")
+    print(f"   Train (PHSP1): {len(train_data):,} campioni")
+    print(f"   Eval  (PHSP2): {len(eval_data):,} campioni")
+
+    # 3. NORMALIZZAZIONE MIN-MAX DI SARRUT (Basata sulla massima statistica del Train)
+    data_min = train_data.min(axis=0)
+    data_max = train_data.max(axis=0)
+    denom = data_max - data_min
+    denom[denom == 0] = 1.0
+    
+    # Conserviamo intatte le copie fisiche grezze per i confronti dei plot alla fine
+    phsp1_raw = train_data.copy()
+    phsp2_raw = eval_data.copy()
+
+    # Scaliamo entrambi i file nell'ipercubo [0, 1] richiesto dalla Sigmoide
+    train_data = (train_data - data_min) / denom
+    eval_data = (eval_data - data_min) / denom
 
     X_train = torch.from_numpy(train_data)
     X_val   = torch.from_numpy(eval_data)
@@ -655,40 +514,32 @@ def train(args):
         drop_last=True,
     )
 
-    # ── Modello (parametri esatti del paper) ──────────────────────────────────
-    print(f"\n  Architettura (Sezione 2.3 del paper):")
+    print(f"\n   Architettura di Rete (Sezione 2.3):")
     G = Generator(x_dim=6, z_dim=args.z_dim, h_dim=args.h_dim)
     D = Discriminator(x_dim=6, h_dim=args.h_dim)
 
     n_G = sum(p.numel() for p in G.parameters())
     n_D = sum(p.numel() for p in D.parameters())
-    print(f"  G: {n_G:,} parametri  (paper: ~500k)")
-    print(f"  D: {n_D:,} parametri  (paper: ~500k)")
-    print(f"  z_dim={args.z_dim}, h_dim={args.h_dim}, n_hidden=3")
-    print(f"  Optimizer: RMSprop, lr={args.lr}")
-    print(f"  n_critic={args.n_critic}, weight_clip=[-0.01, 0.01]")
-    print(f"  Batch size={args.batch_size}")
+    print(f"   G: {n_G:,} parametri  |  D: {n_D:,} parametri")
+    print(f"   Optimizer: RMSprop, lr={args.lr}  |  Batch size={args.batch_size}")
 
     trainer = WGANTrainer(G, D, device=device, lr=args.lr, n_critic=args.n_critic)
 
-    # ── Training ──────────────────────────────────────────────────────────────
-    print(f"\n  Inizio training ({args.n_epochs} epoche)...")
-    print(f"  Steps per epoca: {len(loader)}")
-    print(f"  {'─'*55}")
+    print(f"\n   Inizio training ({args.n_epochs} epoche)...")
+    print(f"   Steps per epoca: {len(loader)}")
+    print(f"   {'─'*55}")
 
     t0 = time.time()
     best_J_D_val = float("inf")
 
     for epoch in range(1, args.n_epochs + 1):
-        # Batch da DataLoader
         for batch in loader:
             metrics = trainer.train_step(batch[0])
 
-        # Logging
         if epoch % args.log_every == 0 or epoch == args.n_epochs:
             J_D_val = trainer.val_loss(X_val)
             elapsed = time.time() - t0
-            print(f"  Ep {epoch:>6d}/{args.n_epochs}  "
+            print(f"   Ep {epoch:>6d}/{args.n_epochs}  "
                   f"J_D={metrics['J_D']:>+8.5f}  "
                   f"J_G={metrics['J_G']:>+8.5f}  "
                   f"J_D_val={J_D_val:>+8.5f}  "
@@ -707,187 +558,84 @@ def train(args):
             trainer.save(str(out_dir / f"checkpoint_{epoch:06d}.pt"))
 
     trainer.save(str(out_dir / "final_model.pt"))
-    print(f"\n  Training completato in {time.time()-t0:.0f}s")
+    print(f"\n   Training completato in {time.time()-t0:.0f}s")
 
-    # ── Generazione campioni finali ────────────────────────────────────────────
-    print("\n  Generazione campioni per valutazione...")
-    n_gen = len(phsp2)
+    # ── GENERAZIONE E POST-PROCESSING DI SARRUT ──
+    print("\n   Generazione campioni per valutazione...")
+    # Generiamo lo stesso esatto numero di particelle contenute nel file PHSP2 sanno
+    n_gen = len(phsp2_raw)
     G.eval()
     gan_samples = G.sample(n_gen, device=device).cpu().numpy()
-    print(f"  Generati: {len(gan_samples):,} campioni")
+    
+    # De-normalizzazione dei campioni GAN riportandoli alla scala fisica reale
+    gan_samples = gan_samples * denom + data_min
+    
+    # Assegniamo le ground truth reali per il confronto
+    phsp1 = phsp1_raw
+    phsp2 = phsp2_raw
 
-    # Salva campioni GAN (formato paper: 6D, ordine E,x,y,dx,dy,dz)
+    print(f"   Generati: {len(gan_samples):,} campioni.")
+    print("   [POST-PROCESSING] Applicazione normalizzazione vettoriale su direzioni...")
+    dx = gan_samples[:, 3]
+    dy = gan_samples[:, 4]
+    dz = gan_samples[:, 5]
+    
+    norm = np.sqrt(dx**2 + dy**2 + dz**2)
+    norm = np.clip(norm, a_min=1e-6, a_max=None) 
+    
+    gan_samples[:, 3] = dx / norm
+    gan_samples[:, 4] = dy / norm
+    gan_samples[:, 5] = dz / norm
+
     np.save(str(out_dir / "gan_samples.npy"), gan_samples)
 
-    # ── Figure del paper ──────────────────────────────────────────────────────
-    print("\n  Generazione figure del paper...")
-
-    plot_training_curves(
-        trainer.history,
-        str(out_dir / "fig1_training_curves.png"),
-    )
-    plot_fig2_marginals(
-        phsp2, gan_samples,
-        str(out_dir / "fig2_marginal_distributions.png"),
-    )
-    plot_fig3_correlation(
-        phsp2, gan_samples,
-        str(out_dir / "fig3_correlation_matrices.png"),
-    )
+    # ── GENERAZIONE FIGURE DEL PAPER CON STATISTICA MASSIMA ──
+    print("\n   Generazione figure del paper...")
+    plot_training_curves(trainer.history, str(out_dir / "fig1_training_curves.png"))
+    plot_fig2_marginals(phsp2, gan_samples, str(out_dir / "fig2_marginal_distributions.png"), n_subsample=len(gan_samples))
+    plot_fig3_correlation(phsp2, gan_samples, str(out_dir / "fig3_correlation_matrices.png"), n_subsample=len(gan_samples))
 
     delta_phsp, delta_gan = compute_fig6_differences(phsp1, phsp2, gan_samples)
-    plot_fig6_differences(
-        delta_phsp, delta_gan,
-        str(out_dir / "fig6_dose_differences.png"),
-    )
+    plot_fig6_differences(delta_phsp, delta_gan, str(out_dir / "fig6_dose_differences.png"))
 
-    # ── Metriche quantitative ──────────────────────────────────────────────────
-    metrics_report = compute_metrics(phsp2, gan_samples, label="PHSP2 vs GAN")
+    metrics_report = compute_metrics(phsp2, gan_samples, label="PHSP2 (Eval) vs GAN")
 
     with open(out_dir / "metrics.json", "w") as f:
         json.dump(metrics_report, f, indent=2)
 
-    # ── Report finale ──────────────────────────────────────────────────────────
     print(f"\n{'='*55}")
-    print(f"  RISULTATI BASELINE (da confrontare con paper Fig.2-3-6)")
+    print(f"   REPLICA SARRUT 2019 COMPLETA E INTEGRALE")
     print(f"{'='*55}")
-    print(f"  Epoche completate: {args.n_epochs}")
-    print(f"  W1 medio:  {metrics_report['mean_w1']:.6f}  (target: < 0.01)")
-    print(f"\n  Confronto col paper Sarrut 2019:")
-    print(f"  - Distribuzioni marginali → fig2_marginal_distributions.png")
-    print(f"  - Matrici di correlazione → fig3_correlation_matrices.png")
-    print(f"  - Differenze di dose      → fig6_dose_differences.png")
-    print(f"  - Curve di training       → fig1_training_curves.png")
-    print(f"\n  Output directory: {out_dir}")
+    print(f"   Output directory: {out_dir}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 7. SCRIPT HELPER: CONVERTI DATI IAEA
+# 7. PARSE ARGUMENTS
 # ═══════════════════════════════════════════════════════════════════════════════
-
-IAEA_CONVERSION_SCRIPT = '''
-# convert_iaea.py
-# ================
-# Converte il file IAEA phase space (.IAEAphsp) in formato .npy usabile con
-# baseline_gaga.py --phsp_train.
-#
-# Dati IAEA disponibili su: https://www-nds.iaea.org/phsp/photon/
-# File da scaricare: Elekta_PRECISE_6MV_phsp_scan.zip
-#
-# Installare: pip install iaea_phsp   (o usare opengate che include gatetools.phsp)
-#
-# Uso:
-#   python convert_iaea.py \\
-#       --input  Elekta_PRECISE_6MV_phsp_scan/Elekta_PRECISE_6MV_phsp_scan.IAEAphsp \\
-#       --output elekta_6mv_train.npy
-#
-# Il file .npy avrà shape (N, 6): [E, x, y, dx, dy, dz]
-
-import numpy as np
-import argparse
-
-def convert(input_path, output_path, max_particles=None):
-    """
-    Legge un file .IAEAphsp (formato binario IAEA) e salva in .npy.
-    Richiede gatetools: pip install gatetools
-    """
-    try:
-        import gatetools.phsp as phsp
-        data, keys, m = phsp.load(input_path, nmax=max_particles)
-    except ImportError:
-        print("Installare: pip install gatetools")
-        print("Oppure: pip install opengate  (include gatetools)")
-        return
-
-    # Seleziona solo fotoni (particle_type = 1 in IAEA)
-    # Riordina: E, x, y, dx, dy, dz
-    print(f"Keys: {keys}")
-    print(f"Particles: {len(data[keys[0]]):,}")
-
-    E  = data["E"]       # energia in MeV
-    x  = data["X"] / 10  # mm → cm
-    y  = data["Y"] / 10  # mm → cm
-    dx = data["u"]
-    dy = data["v"]
-    dz = np.sqrt(np.maximum(1 - dx**2 - dy**2, 0))
-
-    # Rimuovi picco 511 keV (come nel paper: "pre-processed to remove the 511 keV peak")
-    mask = ~((E > 0.505) & (E < 0.520))
-    E = E[mask]; x = x[mask]; y = y[mask]
-    dx = dx[mask]; dy = dy[mask]; dz = dz[mask]
-
-    ps6 = np.column_stack([E, x, y, dx, dy, dz]).astype(np.float32)
-    np.save(output_path, ps6)
-    print(f"Salvato: {output_path}  shape={ps6.shape}")
-
-if __name__ == "__main__":
-    p = argparse.ArgumentParser()
-    p.add_argument("--input",  required=True)
-    p.add_argument("--output", required=True)
-    p.add_argument("--max",    type=int, default=None)
-    a = p.parse_args()
-    convert(a.input, a.output, a.max)
-'''
-
-
 def parse_args():
-    p = argparse.ArgumentParser(
-        description="GAGA Baseline: replica Sarrut 2019",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    p = argparse.ArgumentParser(description="GAGA Baseline Pure Replica: Sarrut 2019")
+    p.add_argument("--synthetic",   action="store_true")
+    p.add_argument("--hdf5_train",  type=str, metavar="PATH", help="File HDF5 di Training (PHSP1)")
+    p.add_argument("--hdf5_eval",   type=str, metavar="PATH", help="File HDF5 di Evaluation (PHSP2)")
 
-    # Sorgente dati
-    g = p.add_mutually_exclusive_group(required=True)
-    g.add_argument("--synthetic",   action="store_true",
-                   help="Usa dati sintetici (test senza GATE)")
-    g.add_argument("--hdf5_train",  type=str, metavar="PATH",
-                   help="File HDF5 dal nostro generatore sintetico")
-    g.add_argument("--phsp_train",  type=str, metavar="PATH",
-                   help="File .npy di phase space (formato E,x,y,dx,dy,dz)")
-
-    p.add_argument("--n_train",  type=int, default=None,
-                   help="Numero campioni di training (default: 50% dei dati)")
-    p.add_argument("--n_eval",   type=int, default=None,
-                   help="Numero campioni eval (default: 50% dei dati)")
-
-    # Iperparametri del paper
-    p.add_argument("--h_dim",     type=int,   default=400,  help="Neuroni per layer (paper: 400)")
-    p.add_argument("--z_dim",     type=int,   default=6,    help="Dimensione latente (paper: 6)")
-    p.add_argument("--lr",        type=float, default=1e-5, help="Learning rate (paper: 1e-5)")
-    p.add_argument("--n_critic",  type=int,   default=4,    help="D updates / G update (paper: 4)")
-    p.add_argument("--batch_size",type=int,   default=10000,help="Batch size (paper: 10000)")
-    p.add_argument("--n_epochs",  type=int,   default=80000,help="Epoche (paper: 80000)")
-
-    # Convenienza
-    p.add_argument("--quick_test",action="store_true",
-                   help="1000 epoche + batch 1000 per test rapido")
-    p.add_argument("--log_every", type=int,  default=5)
-    p.add_argument("--save_every",type=int,  default=5000)
-    p.add_argument("--seed",      type=int,  default=42)
-    p.add_argument("--output_dir",type=str,  default="outputs/baseline")
-
-    # Helper
-    p.add_argument("--dump_convert_script", action="store_true",
-                   help="Stampa lo script per convertire file IAEA")
-
+    p.add_argument("--h_dim",     type=int,   default=400)
+    p.add_argument("--z_dim",     type=int,   default=6)
+    p.add_argument("--lr",        type=float, default=1e-5)
+    p.add_argument("--n_critic",  type=int,   default=4)
+    p.add_argument("--batch_size",type=int,   default=10000)
+    p.add_argument("--n_epochs",  type=int,   default=80000)
+    p.add_argument("--quick_test",action="store_true")
+    p.add_argument("--log_every", type=int,   default=5)
+    p.add_argument("--save_every",type=int,   default=5000)
+    p.add_argument("--seed",      type=int,   default=42)
+    p.add_argument("--output_dir",type=str,   default="outputs/baseline")
     return p.parse_args()
-
 
 if __name__ == "__main__":
     args = parse_args()
-
-    if args.dump_convert_script:
-        print(IAEA_CONVERSION_SCRIPT)
-        sys.exit(0)
-
-    # Quick test override
     if args.quick_test:
-        print("  [QUICK TEST] n_epochs=1000, batch_size=1000, log_every=100")
         args.n_epochs  = 1000
         args.batch_size = 1000
         args.log_every  = 100
         args.save_every = 500
-        args.n_train   = 50_000
-        args.n_eval    = 10_000
-
     train(args)

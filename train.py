@@ -62,7 +62,7 @@ def parse_args():
     # Dati
     p.add_argument("--data_path", type=str, default=None,
                    help="Path a file HDF5 con phase space GATE reale. "
-                        "Se None, genera dati sintetici.")
+                        "Se None, generates dati sintetici.")
     p.add_argument("--n_samples",  type=int, default=500_000,
                    help="Campioni da generare (solo per dati sintetici)")
     p.add_argument("--E_nom",  type=float, default=6.0,  help="Energia fascio [MeV]")
@@ -79,10 +79,15 @@ def parse_args():
                    help="Calcola val loss ogni N epoche")
     p.add_argument("--save_every",  type=int,   default=20,
                    help="Salva checkpoint ogni N epoche")
-
+    p.add_argument("--n_critic", type=int, default=5,
+                   help="[GAN] Aggiornamenti del critic per ogni update del generatore (Sarrut: 4)")
+    p.add_argument("--gan_hidden_dims", type=int, nargs="+", default=[256, 512, 512, 256],
+                   help="[GAN] Dimensioni degli hidden layers per G e D (Sarrut: 400 400 400)")
     # NSF-specific
     p.add_argument("--spherical",    action="store_true",
                    help="Reparametrizzazione sferica (theta,phi) — per dati reali IAEA")
+    p.add_argument("--rank_spatial", action="store_true",
+                   help="Rank Transform su x,y (Copula) — risolve bordi netti jaw")
     p.add_argument("--n_transforms", type=int, default=6,
                    help="[NSF] Numero di coupling transforms")
     p.add_argument("--n_bins",        type=int, default=8,
@@ -123,8 +128,8 @@ def prepare_data(args, out_dir: Path):
     Prepara i dati di training (sintetici o reali).
     Restituisce:
         (ps_train, ps_val, ps_test,
-         c_train, c_val, c_test,  -- None se non condizionato
-         stats)                   -- statistiche di normalizzazione
+         c_train, c_val, c_test,   -- None se non condizionato
+         stats)                    -- statistiche di normalizzazione
     """
     print("\n" + "="*55)
     print("  Preparazione dati")
@@ -170,12 +175,21 @@ def prepare_data(args, out_dir: Path):
 
     # Normalizzazione
     use_spherical = getattr(args, "spherical", False)
-    ps_norm, stats = normalize_phase_space(ps, spherical=use_spherical)
+    use_rank      = getattr(args, "rank_spatial", False)
+    # Chiamata aggiornata con i nuovi parametri per la Copula spaziale
+    ps_norm, stats = normalize_phase_space(
+        ps, 
+        spherical=use_spherical, 
+        rank_spatial=use_rank, 
+        stats_dir=str(out_dir)
+    )
     if use_spherical:
         print(f"  Reparametrizzazione: (dx,dy,dz) -> (theta,phi)")
+
     z_vals = ps[:, 2] if ps.shape[1] == 7 else np.zeros(1)
     if z_vals.std() < 1e-3:
         stats["z_const"] = float(z_vals.mean())
+
     with open(out_dir / "normalization_stats.json", "w") as f:
         json.dump(stats, f, indent=2)
     print(f"  Statistiche di normalizzazione salvate")
@@ -183,6 +197,7 @@ def prepare_data(args, out_dir: Path):
     # Normalizza anche le condizioni
     if conditions is not None:
         from data.dataset import normalize_conditions
+
         c_norm, c_stats = normalize_conditions(conditions)
         with open(out_dir / "condition_stats.json", "w") as f:
             json.dump(c_stats, f, indent=2)
@@ -297,13 +312,17 @@ def run_training(args):
 
     elif args.model == "gan":
         from models.gan import PhaseSpaceGenerator, PhaseSpaceCritic, WGANGPTrainer
-        G = PhaseSpaceGenerator(cond_dim=cond_dim, hidden_dims=[256, 512, 512, 256])
-        D = PhaseSpaceCritic(cond_dim=cond_dim,    hidden_dims=[256, 512, 512, 256])
-        trainer = WGANGPTrainer(G, D, device=device, lr=args.lr)
+        # Estrarre la dimensione reale direttamente dalla matrice dei dati previene qualsiasi NameError
+        _dim_gan = ps_tr.shape[1]
+        G = PhaseSpaceGenerator(cond_dim=cond_dim, hidden_dims=args.gan_hidden_dims, output_dim=_dim_gan)
+        D = PhaseSpaceCritic(cond_dim=cond_dim,    hidden_dims=args.gan_hidden_dims, input_dim=_dim_gan)
+        trainer = WGANGPTrainer(G, D, device=device, lr=args.lr, n_critic=args.n_critic)
         model = G
 
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"  Parametri: {n_params:,}")
+    if args.model == "gan":
+        print(f"  n_critic: {args.n_critic} | gan_hidden_dims: {args.gan_hidden_dims}")
 
     # ── Training loop ──────────────────────────────────────────────────────
     print(f"\n  Inizio training ({args.epochs} epoche)...")
@@ -333,7 +352,6 @@ def run_training(args):
 
         train_loss = np.mean(losses)
 
-        # ── Validazione ───────────────────────────────────────────────────
         if epoch % args.val_every == 0 or epoch == args.epochs:
             if args.model in ("nsf", "cfm"):
                 val_loss = trainer.val_step(X_val, C_val)
@@ -345,11 +363,21 @@ def run_training(args):
             else:
                 val_loss = train_loss  # GAN non ha val loss classica
 
+            # Estrattore di Learning Rate universale e sicuro per NSF, CFM e GAN
+            if hasattr(trainer, 'opt'):
+                current_lr = trainer.opt.param_groups[0]['lr']
+            elif hasattr(trainer, 'opt_G'):
+                current_lr = trainer.opt_G.param_groups[0]['lr']
+            elif hasattr(trainer, 'optimizer_G'):
+                current_lr = trainer.optimizer_G.param_groups[0]['lr']
+            else:
+                current_lr = args.lr
+
             elapsed = time.time() - t_start
-            print(f"  Epoch {epoch:>4d}/{args.epochs} | "
+            print(f" Epoch {epoch:>4d}/{args.epochs} | "
                   f"train: {train_loss:>9.5f} | "
                   f"val: {val_loss:>9.5f} | "
-                  f"lr: {trainer.opt.param_groups[0]['lr']:.2e} | "
+                  f"lr: {current_lr:.2e} | "
                   f"{elapsed:.0f}s")
 
             # Salva best model
@@ -374,17 +402,28 @@ def run_training(args):
     # Genera campioni con il modello
     model.eval()
     n_gen = len(ps_te)
+    chunk_size = 250000  # 250k campioni alla volta entrano comodi nei 16GB di VRAM
+    gen_norm_list = [] 
+    print(f"\n  Generazione finale sul test set in corso ({n_gen:,} campioni in chunk da {chunk_size:,})...")
+    with torch.no_grad():
+        for i in range(0, n_gen, chunk_size):
+            end_idx = min(i + chunk_size, n_gen)
+            size = end_idx - i
+            # Seleziona lo spezzone di condizioni (se presenti)
+            c_chunk = C_te[i:end_idx].to(device) if C_te is not None else None
 
-    if args.model == "nsf":
-        c_te_dev = C_te.to(device) if C_te is not None else None
-        gen_norm = model.sample(n_gen, c=c_te_dev).cpu().numpy()
-    elif args.model == "cfm":
-        c_te_dev = C_te.to(device) if C_te is not None else None
-        gen_norm = model.sample(n_gen, c=c_te_dev, n_steps=args.n_ode_steps).cpu().numpy()
-    else:  # GAN
-        c_te_dev = C_te.to(device) if C_te is not None else None
-        gen_norm = model.sample(n_gen, c=c_te_dev, device=device).cpu().numpy()
+            if args.model == "nsf":
+                chunk_out = model.sample(size, c=c_chunk).cpu().numpy()
+            elif args.model == "cfm":
+                chunk_out = model.sample(size, c=c_chunk, n_steps=args.n_ode_steps).cpu().numpy()
+            else:  # GAN
+                chunk_out = model.sample(size, c=c_chunk, device=device).cpu().numpy()
 
+            gen_norm_list.append(chunk_out)
+            print(f"  Avanzamento: {end_idx:,} / {n_gen:,} ({100*end_idx/n_gen:.1f}%)", end="\r")
+    print()
+    # Concatena tutti i blocchi generati in un'unica matrice finale
+    gen_norm = np.concatenate(gen_norm_list, axis=0)
     # Denormalizza
     gen_raw = denormalize_phase_space(gen_norm, stats)
     real_test_raw = denormalize_phase_space(ps_te, stats)

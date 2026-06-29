@@ -4,11 +4,11 @@ evaluate.py
 Pipeline di valutazione per modelli generativi di phase space.
 
 Metriche implementate:
-    1. Wasserstein-1 (W1) per ogni dimensione marginale
+    1. Wasserstein-1 (W1) per ogni dimension marginale
     2. MMD (Maximum Mean Discrepancy) con kernel RBF sulla distribuzione 7D
     3. Separability score con classificatore Random Forest
     4. Statistiche sulle code (> 2 sigma) per diagnosticare mode collapse
-    5. Plot delle distribuzioni marginali (pdf + CDFs)
+    5. Plot delle distribuzioni marginali (pdf + CDFs) con stile 2x3 pastello
 
 Dipendenze: numpy, scipy, sklearn, matplotlib — nessun torch richiesto.
 """
@@ -26,7 +26,6 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib
 matplotlib.use("Agg")  # non-interactive per server
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 
 
 # ─── Nomi dei canali ──────────────────────────────────────────────────────────
@@ -133,6 +132,7 @@ def separability_score(
     generated: np.ndarray,
     n_subsample: int = 5000,
     seed: int = 42,
+    drop_cols: Optional[List[int]] = None,
 ) -> Dict[str, float]:
     """
     Addestra un Random Forest a distinguere campioni reali da generati.
@@ -141,6 +141,14 @@ def separability_score(
     Interpretazione:
         0.50 → distribuzioni indistinguibili (modello perfetto)
         1.00 → facilmente distinguibili (modello fallisce)
+
+    drop_cols : indici di colonna da escludere prima del fit (es.
+        colonne costanti come z, vedi _detect_zero_variance_columns).
+        Necessario perché lo StandardScaler dividerebbe per uno std
+        quasi-zero su una colonna costante, amplificando un residuo
+        numerico float32 insignificante in una feature perfettamente
+        discriminante — un falso leakage che non riflette la qualità
+        reale del modello sulle variabili fisiche.
 
     Returns
     -------
@@ -154,6 +162,10 @@ def separability_score(
 
     X = np.concatenate([real[idx_r], generated[idx_g]])
     y = np.concatenate([np.ones(n), np.zeros(n)])
+
+    if drop_cols:
+        keep_cols = [i for i in range(X.shape[1]) if i not in drop_cols]
+        X = X[:, keep_cols]
 
     scaler = StandardScaler().fit(X)
     X_scaled = scaler.transform(X)
@@ -232,7 +244,60 @@ def ks_test_marginals(
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 6. Plot distribuzioni marginali
+# 5b. Auto-fix data leakage su colonne a varianza zero (es. z costante)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _detect_zero_variance_columns(
+    real: np.ndarray,
+    generated: np.ndarray,
+    tol: float = 1e-3,
+    verbose: bool = True,
+) -> List[int]:
+    """
+    Rileva le colonne costanti (varianza ~0) in ENTRAMBI gli array reale
+    e generato — tipicamente z, il piano isocentrico fisso del fascio.
+
+    Motivazione: una costante geometrica come z può differire tra real
+    e generated solo per rumore numerico residuo di precisione float32
+    (es. 27.210000 vs 27.210005). Una differenza così piccola è
+    fisicamente nulla, ma se la colonna entra nel separability_score,
+    lo StandardScaler la normalizza dividendo per uno std quasi-zero
+    (es. 1e-6) — questo AMPLIFICA il residuo numerico fino a renderlo
+    una feature perfettamente discriminante per il Random Forest,
+    anche dopo aver "allineato" i due valori (l'allineamento stesso
+    introduce un nuovo arrotondamento float32 leggermente diverso).
+
+    L'unica soluzione robusta è ESCLUDERE la colonna dal calcolo del
+    separability score, non provare ad allinearla numericamente.
+    Per le altre metriche (W1, MMD, tail, KS) la colonna non va
+    esclusa: lì il contributo di una costante è già ~0 per
+    costruzione (nessuno scaler divisivo nel mezzo), quindi restano
+    informative e comparabili allo stato originale.
+
+    Returns
+    -------
+    Lista degli indici di colonna rilevati come costanti in entrambi.
+    """
+    const_cols = []
+    n_cols = real.shape[1]
+    for i in range(n_cols):
+        real_std = float(real[:, i].std())
+        gen_std  = float(generated[:, i].std())
+        if real_std < tol and gen_std < tol:
+            const_cols.append(i)
+            if verbose:
+                label = CHANNEL_LABELS[i] if i < len(CHANNEL_LABELS) else f"col{i}"
+                print(f"  [Auto-Detect] Colonna '{label}' costante in entrambi "
+                      f"(std_real={real_std:.2e}, std_gen={gen_std:.2e}) — "
+                      f"verrà esclusa dal separability score per evitare "
+                      f"data leakage numerico (lo StandardScaler "
+                      f"amplificherebbe il residuo float32 a una feature "
+                      f"perfettamente discriminante).")
+    return const_cols
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 6. Plot distribuzioni marginali (Stile Elegante 2x3 Pastello)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def plot_marginals(
@@ -240,62 +305,74 @@ def plot_marginals(
     generated_dict: Dict[str, np.ndarray],
     save_path: str,
     n_subsample: int = 50_000,
-    n_bins: int = 80,
-    title: str = "Distribuzioni Marginali del Phase Space",
+    n_bins: int = 100,
+    title: Optional[str] = None,
 ) -> None:
     """
-    Confronto visivo delle distribuzioni 1D marginali tra:
-        - dati reali (ground truth MC)
-        - uno o più modelli generativi
-
-    Parametri
-    ---------
-    generated_dict : {nome_modello: array (N, 7)}
-    save_path      : path del PNG di output
+    Confronto visivo delle distribuzioni 1D marginali in un layout compatto 2x3.
+    Esclude la variabile 'z' (costante) per replicare perfettamente lo stile richiesto.
     """
     rng = np.random.default_rng(0)
     n_r = min(n_subsample, len(real))
     idx_r = rng.choice(len(real), n_r, replace=False)
     real_sub = real[idx_r]
 
-    colors = plt.cm.tab10(np.linspace(0, 0.9, len(generated_dict) + 1))
-    fig = plt.figure(figsize=(20, 10))
-    gs  = gridspec.GridSpec(2, 4, figure=fig, hspace=0.4, wspace=0.3)
+    # Creazione griglia 2x3 identica al file di riferimento
+    fig, axes = plt.subplots(2, 3, figsize=(12, 6.5))
 
-    axes = [fig.add_subplot(gs[r, c]) for r in range(2) for c in range(4)]
+    color_phsp = "#5b84c4"  # Blu pastello (PHSP)
+    color_cfm  = "#e69a6a"  # Arancione pastello (CFM)
+    alpha_val  = 0.65       # Trasparenza ottimale per la sovrapposizione
 
-    for i, (name, ax) in enumerate(zip(CHANNEL_NAMES, axes[:7])):
-        # Salta z se costante (evita divisione per zero nell'istogramma)
-        col_std = real_sub[:, i].std()
-        if col_std < 1e-6:
-            ax.text(0.5, 0.5, f"{name}\n(costante = {real_sub[0,i]:.3f})",
-                    ha="center", va="center", transform=ax.transAxes, fontsize=10,
-                    color="gray")
-            ax.set_title(name, fontsize=9)
-            continue
-        # Bins comuni su range dei dati reali
+    # Mapping esatto: [Indice canale, Etichetta asse X, Asse di riferimento]
+    # Ordine riga 1: E, x, y  | Ordine riga 2: dx, dy, dz
+    # Indici originali: x=0, y=1, z=2, dx=3, dy=4, dz=5, E=6
+    plot_mapping = [
+        {"idx": 6, "label": "E [MeV]", "ax": axes[0, 0]},
+        {"idx": 0, "label": "x [cm]",  "ax": axes[0, 1]},
+        {"idx": 1, "label": "y [cm]",  "ax": axes[0, 2]},
+        {"idx": 3, "label": "dx",       "ax": axes[1, 0]},
+        {"idx": 4, "label": "dy",       "ax": axes[1, 1]},
+        {"idx": 5, "label": "dz",       "ax": axes[1, 2]}
+    ]
+
+    for item in plot_mapping:
+        i = item["idx"]
+        ax = item["ax"]
+
+        # Intervallo basato sui percentili del reale per tagliare code vuote estreme
         lo, hi = np.percentile(real_sub[:, i], [0.5, 99.5])
-        bins   = np.linspace(lo, hi, n_bins)
+        bins = np.linspace(lo, hi, n_bins)
 
-        ax.hist(real_sub[:, i], bins=bins, density=True,
-                alpha=0.6, color=colors[0], label="MC (reale)", histtype="stepfilled")
+        # Plot Ground Truth (PHSP)
+        ax.hist(real_sub[:, i], bins=bins, density=True, color=color_phsp,
+                alpha=alpha_val, histtype="stepfilled", edgecolor="none", label="PHSP")
 
+        # Plot Modelli Generati (CFM)
         for j, (model_name, gen) in enumerate(generated_dict.items()):
             n_g = min(n_subsample, len(gen))
             idx_g = rng.choice(len(gen), n_g, replace=False)
-            ax.hist(gen[idx_g, i], bins=bins, density=True,
-                    alpha=0.7, color=colors[j+1],
-                    label=model_name, histtype="step", linewidth=1.8)
+            
+            # Se c'è solo un modello usa l'arancione fisso, altrimenti scala con la colormap
+            color = color_cfm if len(generated_dict) == 1 else plt.cm.tab10(j / max(1, len(generated_dict)))
+            label = model_name
+            
+            ax.hist(gen[idx_g, i], bins=bins, density=True, color=color,
+                    alpha=alpha_val, histtype="stepfilled", edgecolor="none", label=label)
 
-        ax.set_xlabel(name, fontsize=9)
-        ax.set_ylabel("Densità", fontsize=8)
-        ax.legend(fontsize=7)
-        ax.grid(True, alpha=0.3)
+        # Formattazione estetica assi e griglia
+        ax.set_xlabel(item["label"], fontsize=10)
+        ax.set_ylabel("Counts", fontsize=10)
+        ax.set_xlim([lo, hi])
+        ax.grid(True, linestyle='-', alpha=0.2, color='gray')
+        ax.tick_params(axis='both', which='major', labelsize=9)
+        ax.legend(loc="upper right", fontsize=8, framealpha=0.8)
 
-    # Nasconde l'ultimo pannello (axes[7])
-    axes[7].axis("off")
-    fig.suptitle(title, fontsize=13, fontweight="bold")
-    plt.savefig(save_path, dpi=150, bbox_inches="tight")
+    plt.tight_layout()
+    if title:
+        fig.suptitle(title, fontsize=12, fontweight="bold", y=1.01)
+        
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.close()
     print(f"  Plot salvato: {save_path}")
 
@@ -372,6 +449,14 @@ def evaluate_model(
 
     report = {"model": model_name, "n_real": len(real), "n_gen": len(generated)}
 
+    # Rileva colonne costanti in entrambi gli array (es. z) — verranno
+    # escluse SOLO dal separability score (dove lo StandardScaler
+    # amplificherebbe un residuo numerico float32 in un falso leakage).
+    # Le altre metriche (W1, MMD, tail, KS) restano sui dati originali:
+    # lì una colonna costante contribuisce ~0 senza bisogno di esclusione.
+    if verbose: print("\n[0/4] Controllo data leakage su colonne costanti...")
+    const_cols = _detect_zero_variance_columns(real, generated, verbose=verbose)
+
     # 1. W1 marginali
     if verbose: print("\n[1/4] Wasserstein-1 marginali...")
     w1 = wasserstein1_marginals(real, generated)
@@ -387,9 +472,9 @@ def evaluate_model(
     report["mmd"] = mmd
     if verbose: print(f"  MMD^2 = {mmd:.6f}  (sqrt = {np.sqrt(mmd):.6f})")
 
-    # 3. Separability
+    # 3. Separability (colonne costanti escluse per evitare leakage)
     if verbose: print("\n[3/4] Separability score (Random Forest)...")
-    sep = separability_score(real, generated)
+    sep = separability_score(real, generated, drop_cols=const_cols)
     report["separability"] = sep
     if verbose:
         print(f"  Accuracy = {sep['accuracy']:.4f} ± {sep['std']:.4f}")
@@ -421,7 +506,7 @@ def evaluate_model(
         json.dump(report, f, indent=2, default=lambda x: float(x) if isinstance(x, (np.floating, np.integer)) else x)
     if verbose: print(f"\n  Report salvato: {report_path}")
 
-    # Plot
+    # Generazione dei Plot aggiornati
     plot_marginals(
         real, {model_name: generated},
         str(output_dir / f"{model_name}_marginals.png")
@@ -454,10 +539,9 @@ def compare_models(
         reports[name] = evaluate_model(real, gen, model_name=name,
                                        output_dir=str(output_dir))
 
-    # Plot marginals comparativo (tutti i modelli insieme)
+    # Plot marginals comparativo (tutti i modelli insieme nel formato 2x3)
     plot_marginals(real, models,
-                   str(output_dir / "comparison_marginals.png"),
-                   title="Confronto Modelli Generativi vs MC")
+                   str(output_dir / "comparison_marginals.png"))
 
     # Tabella riassuntiva
     print(f"\n{'='*65}")
@@ -487,18 +571,6 @@ def evaluate_conditional(
 ) -> dict:
     """
     Valuta un CFM condizionato config per config.
-
-    Per ogni configurazione c = [E_nom, jaw_x, jaw_y]:
-        1. Genera n_samples con il modello condizionato su c
-        2. Genera n_samples dal generatore sintetico con gli stessi parametri
-        3. Calcola W1, MMD, separability
-
-    Parameters
-    ----------
-    model      : PhaseSpaceCFM o PhaseSpaceNSF già caricato
-    stats      : dict statistiche normalizzazione (da normalization_stats.json)
-    cond_stats : dict statistiche condizioni (da condition_stats.json)
-    configs    : dict {nome: {E_nom, jaw_x, jaw_y}} — usa DEFAULT_CONFIGS
     """
     import torch
     from pathlib import Path
@@ -565,11 +637,10 @@ def evaluate_conditional(
         summary_rows.append((cfg_name, w1["mean"], w1["E"], mmd,
                               sep["accuracy"]))
 
-        # Plot marginali per questa config
+        # Plot marginali per questa config nel formato 2x3 pulito
         plot_marginals(
             ps7_real, {cfg_name: gen_phys},
-            str(output_dir / f"marginals_{cfg_name}.png"),
-            title=f"CFM condizionato — {cfg_name}  (E={E_nom}MV, jaw={jaw_x}×{jaw_y}cm)"
+            str(output_dir / f"marginals_{cfg_name}.png")
         )
 
     # Tabella riassuntiva
@@ -585,7 +656,6 @@ def evaluate_conditional(
     print(f"  {'MEDIA':<14} {mean_w1:>10.6f} {'':>10} {'':>12} {mean_sep:>8.4f}")
     print(f"{'='*65}")
 
-    import json
     with open(output_dir / "conditional_eval.json", "w") as f:
         json.dump(all_results, f, indent=2,
                   default=lambda x: float(x) if hasattr(x, "__float__") else str(x))

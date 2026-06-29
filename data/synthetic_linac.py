@@ -321,31 +321,83 @@ def _spherical_to_cartesian(theta, phi):
     dy = (sin_theta * np.sin(phi)).astype(np.float32)
     dz = np.cos(theta).astype(np.float32)
     return dx, dy, dz
+def _rank_transform(x: np.ndarray):
+    """
+    Applica la Probability Integral Transform a un array 1D.
+    Restituisce (uniform_values, sorted_quantiles).
+    Usa argsort invece di rankdata — molto più veloce su array grandi.
+    """
+    n = len(x)
+    order = np.argsort(x)          # indici che ordinano x
+    ranks = np.empty(n, dtype=np.float32)
+    ranks[order] = (np.arange(n, dtype=np.float32) + 1.0) / (n + 1.0)
+    sorted_q = x[order].astype(np.float32)  # quantili empirici ordinati
+    return ranks, sorted_q
 
+
+def _rank_inverse(u: np.ndarray, sorted_q: np.ndarray) -> np.ndarray:
+    """
+    Inverte la rank transform: mappa valori uniformi (0,1)
+    ai valori originali tramite interpolazione sui quantili empirici.
+    """
+    n = len(sorted_q)
+    # u è in (0,1) → indice continuo in [0, n-1]
+    indices = np.clip(u * n, 0.0, n - 1.0)
+    return np.interp(indices, np.arange(n), sorted_q).astype(np.float32)
 
 def normalize_phase_space(
     ps: np.ndarray,
     stats: Optional[dict] = None,
     drop_z: bool = True,
     spherical: bool = True,
+    rank_spatial: bool = False,
+    stats_dir: Optional[str] = None,   # cartella dove salvare i .npy
 ) -> Tuple[np.ndarray, dict]:
     """
-    Normalizza il phase space per il training dei modelli.
-
-    Se spherical=True (default per dati reali), converte (dx,dy,dz) →
-    (theta, phi) prima della standardizzazione. Questo elimina la parete
-    verticale a dz=1.0 che le spline NSF non riescono a riprodurre.
-
-    Vettore output (N, 5) se spherical=True:  (x, y, theta, phi, E)
-    Vettore output (N, 6) se spherical=False: (x, y, dx, dy, dz, E)
+    Normalizza il phase space per il training.
+    Se rank_spatial=True applica la Probability Integral Transform
+    su x e y prima della standardizzazione gaussiana — risolve il
+    problema dei bordi netti del jaw.
+    I quantili (123M float) vengono salvati in stats_dir/*.npy,
+    NON nel JSON.
     """
+    from scipy.stats import norm as sp_norm
+
     if drop_z:
-        x, y = ps[:, 0], ps[:, 1]
+        x, y = ps[:, 0].copy(), ps[:, 1].copy()
         dx, dy, dz, E = ps[:, 3], ps[:, 4], ps[:, 5], ps[:, 6]
     else:
-        x, y, z_col = ps[:, 0], ps[:, 1], ps[:, 2]
+        x, y = ps[:, 0].copy(), ps[:, 1].copy()
         dx, dy, dz, E = ps[:, 3], ps[:, 4], ps[:, 5], ps[:, 6]
 
+    # ── RANK TRANSFORM su x e y ───────────────────────────────────────
+    if rank_spatial:
+        if stats is None:
+            # Fase training: calcola e salva i quantili
+            x_uni, x_sorted = _rank_transform(x)
+            y_uni, y_sorted = _rank_transform(y)
+            # Mappa uniforme (0,1) → gaussiana N(0,1) con probit
+            x = sp_norm.ppf(x_uni).astype(np.float32)
+            y = sp_norm.ppf(y_uni).astype(np.float32)
+            # Salva quantili come .npy (non nel JSON — troppo grandi)
+            if stats_dir is not None:
+                Path(stats_dir).mkdir(parents=True, exist_ok=True)
+                np.save(str(Path(stats_dir) / "x_quantiles.npy"), x_sorted)
+                np.save(str(Path(stats_dir) / "y_quantiles.npy"), y_sorted)
+        else:
+            # Fase inferenza/eval: carica quantili salvati
+            q_dir = stats.get("quantiles_dir", stats_dir)
+            x_sorted = np.load(str(Path(q_dir) / "x_quantiles.npy"))
+            y_sorted = np.load(str(Path(q_dir) / "y_quantiles.npy"))
+            # Mappa x,y sui quantili del training (searchsorted = O(N log N))
+            x_uni = np.searchsorted(x_sorted, x).astype(np.float32) / len(x_sorted)
+            y_uni = np.searchsorted(y_sorted, y).astype(np.float32) / len(y_sorted)
+            x_uni = np.clip(x_uni, 1e-6, 1.0 - 1e-6)
+            y_uni = np.clip(y_uni, 1e-6, 1.0 - 1e-6)
+            x = sp_norm.ppf(x_uni).astype(np.float32)
+            y = sp_norm.ppf(y_uni).astype(np.float32)
+
+    # ── Il resto è IDENTICO alla versione originale ───────────────────
     if spherical:
         theta, phi = _cartesian_to_spherical(dx, dy, dz)
         ps_work   = np.column_stack([x, y, theta, phi, E]).astype(np.float32)
@@ -355,13 +407,17 @@ def normalize_phase_space(
         col_names = ["x", "y", "dx", "dy", "dz", "E"]
 
     if stats is None:
-        stats = {"drop_z": drop_z, "spherical": spherical, "col_names": col_names}
-        # z_const: piano sorgente — 0 per dati sintetici, 27.21cm per IAEA Elekta.
-        # Salvato qui (e non solo in train.py) così è disponibile a chiunque
-        # chiami normalize_phase_space direttamente (read_iaea_phsp, gate_simulations).
+        stats = {
+            "drop_z": drop_z,
+            "spherical": spherical,
+            "col_names": col_names,
+            "rank_spatial": rank_spatial,
+        }
+        if rank_spatial and stats_dir is not None:
+            stats["quantiles_dir"] = str(stats_dir)
         if drop_z and ps.shape[1] == 7:
             z_col = ps[:, 2]
-            if z_col.std() < 1e-3:  # z costante → IAEA o piano isocentrico
+            if z_col.std() < 1e-3:
                 stats["z_const"] = float(z_col.mean())
         for i, col in enumerate(col_names):
             stats[f"{col}_mu"]    = float(ps_work[:, i].mean())
@@ -373,43 +429,51 @@ def normalize_phase_space(
 
     return ps_norm, stats
 
-
 def denormalize_phase_space(ps_norm: np.ndarray, stats: dict) -> np.ndarray:
     """
-    Inverte la normalizzazione e ricostruisce il vettore (N,7) fisico.
-
-    Se spherical=True, converte (theta, phi) → (dx, dy, dz) garantendo ||d||=1.
-    Se drop_z=True, reinserisce z=costante (letto da stats["z_const"], default 0).
+    Inverte la normalizzazione. Se rank_spatial=True inverte anche
+    la Probability Integral Transform su x e y.
     """
-    col_names = stats.get("col_names", ["x", "y", "dx", "dy", "dz", "E"])
-    drop_z    = stats.get("drop_z",    True)
-    spherical = stats.get("spherical", False)
-    z_const   = stats.get("z_const",   0.0)
+    from scipy.stats import norm as sp_norm
 
+    col_names    = stats.get("col_names",    ["x", "y", "dx", "dy", "dz", "E"])
+    drop_z       = stats.get("drop_z",       True)
+    spherical    = stats.get("spherical",    False)
+    z_const      = stats.get("z_const",      0.0)
+    rank_spatial = stats.get("rank_spatial", False)
+
+    # 1. Inversione standardizzazione gaussiana (identica a prima)
     ps_work = np.empty_like(ps_norm)
     for i, col in enumerate(col_names):
         ps_work[:, i] = ps_norm[:, i] * stats[f"{col}_sigma"] + stats[f"{col}_mu"]
 
+    # 2. Inversione rank transform su x e y
+    if rank_spatial:
+        q_dir    = stats.get("quantiles_dir", ".")
+        x_sorted = np.load(str(Path(q_dir) / "x_quantiles.npy"))
+        y_sorted = np.load(str(Path(q_dir) / "y_quantiles.npy"))
+        # Gaussiana N(0,1) → uniforme (0,1) → valori originali
+        x_uni = sp_norm.cdf(ps_work[:, 0]).astype(np.float32)
+        y_uni = sp_norm.cdf(ps_work[:, 1]).astype(np.float32)
+        ps_work[:, 0] = _rank_inverse(x_uni, x_sorted)
+        ps_work[:, 1] = _rank_inverse(y_uni, y_sorted)
+
+    # 3. Ricostruzione vettore 7D (identica a prima)
     N = len(ps_work)
     ps_full = np.zeros((N, 7), dtype=np.float32)
 
     if spherical:
-        # ps_work colonne: (x, y, theta, phi, E)
-        x, y        = ps_work[:, 0], ps_work[:, 1]
-        theta, phi  = ps_work[:, 2], ps_work[:, 3]
-        E           = ps_work[:, 4]
-        dx, dy, dz  = _spherical_to_cartesian(theta, phi)
-        ps_full[:, 0] = x
-        ps_full[:, 1] = y
+        x, y       = ps_work[:, 0], ps_work[:, 1]
+        theta, phi = ps_work[:, 2], ps_work[:, 3]
+        E          = ps_work[:, 4]
+        dx, dy, dz = _spherical_to_cartesian(theta, phi)
+        ps_full[:, 0] = x;  ps_full[:, 1] = y
         ps_full[:, 2] = z_const
-        ps_full[:, 3] = dx
-        ps_full[:, 4] = dy
-        ps_full[:, 5] = dz
+        ps_full[:, 3] = dx; ps_full[:, 4] = dy; ps_full[:, 5] = dz
         ps_full[:, 6] = E
     else:
-        # ps_work colonne: (x, y, dx, dy, dz, E)
-        ps_full[:, :2]  = ps_work[:, :2]
-        ps_full[:, 2]   = z_const
-        ps_full[:, 3:]  = ps_work[:, 2:]
+        ps_full[:, :2] = ps_work[:, :2]
+        ps_full[:, 2]  = z_const
+        ps_full[:, 3:] = ps_work[:, 2:]
 
     return ps_full
