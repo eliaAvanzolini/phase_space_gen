@@ -30,3 +30,12 @@ recupero_istantaneo.py
 patch_eval_cfm.py
 patch_eval_leakage.py
 fix_nsf_eval.py
+
+# ── Spazzatura computazionale del cluster HPC ───────────────────────────────
+*.pbs
+*.sh
+*.o[0-9]*
+*.e[0-9]*
+*.err
+*.log
+*.tar.gz
