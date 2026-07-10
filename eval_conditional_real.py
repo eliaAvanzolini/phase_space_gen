@@ -152,7 +152,8 @@ def generate_conditional(model, model_type, c_norm, n_samples, device, n_ode_ste
             c_chunk = c_norm[:n_chunk].to(device) if c_norm is not None else None
 
             if model_type == "nsf":
-                s = model.sample(n_chunk, c=c_chunk).cpu().numpy()
+                s = model.sample(1, c=c_chunk).cpu().numpy()
+                if len(s.shape) == 3: s = s.squeeze(1)
             elif model_type == "cfm":
                 try:
                     s = model.sample(n_chunk, c=c_chunk, n_steps=n_ode_steps).cpu().numpy()
