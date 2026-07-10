@@ -16,15 +16,15 @@ model: gan
 conditional: true
 
 # ── Dati ──────────────────────────────────────────────────────────────────────
-data_path: data/elekta_multi_energy.h5
+data_path: data/conditional_jaws_dataset.h5
 
 # ── Architettura (Sarrut 2019) ────────────────────────────────────────────────
 gan_hidden_dims: [400, 400, 400]
 
 # ── Training WGAN-GP ──────────────────────────────────────────────────────────
-epochs: 10              # Settato a 10 per test — aumentare sul cluster (80000)
-batch_size: 10000
-lr: 1e-5
+epochs: 200              # Settato a 10 per test — aumentare sul cluster (80000)
+batch_size: 4096
+lr: 1.0e-5
 n_critic: 4
 val_every: 2
 save_every: 5

@@ -1,46 +1,15 @@
-# Python
-**/__pycache__/
-*.pyc
-env/
-venv/
-
-# File di output pesanti (non caricarli su GitHub!)
-outputs/
-*.h5
 *.pt
-*.npy
+*.pth
+*.h5
 *.root
-# Windows metadata
-*:Zone.Identifier
-
-# Python bytecode
+*.npy
+data/
+outputs/
+ritornati_finali/
 __pycache__/
 *.pyc
 
-# Cartelle pesanti (opzionale, rimuovile se vuoi caricarle)
-# data/
-# models/
-
-# --- Esclusioni specifiche della validazione dosimetrica ---
-*.IAEAphsp
-*.sh
-jobs/
-logs/
-recupero_istantaneo.py
-patch_eval_cfm.py
-patch_eval_leakage.py
-fix_nsf_eval.py
-
-# ── Spazzatura computazionale del cluster HPC ───────────────────────────────
-*.pbs
-*.sh
-*.o[0-9]*
-*.e[0-9]*
-*.err
-*.log
-*.tar.gz
-
-# ── Spazzatura computazionale del cluster HPC ───────────────────────────────
+# Spazzatura cluster HPC
 *.pbs
 *.sh
 *.o[0-9]*

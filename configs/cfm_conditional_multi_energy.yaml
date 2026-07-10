@@ -12,16 +12,16 @@ spherical: true
 rank_spatial: true
 
 # ── Dati ──────────────────────────────────────────────────────────────────────
-data_path: data/elekta_multi_energy.h5
+data_path: data/conditional_jaws_dataset.h5
 
 # ── Architettura ──────────────────────────────────────────────────────────────
 hidden_dim: 512
 n_layers: 6
 
 # ── Training ──────────────────────────────────────────────────────────────────
-epochs: 10              # Settato a 10 per test — aumentare sul cluster (500+)
-batch_size: 16384
-lr: 5e-5
+epochs: 200              # Settato a 10 per test — aumentare sul cluster (500+)
+batch_size: 4096
+lr: 5.0e-5
 val_every: 2
 save_every: 5
 seed: 42
