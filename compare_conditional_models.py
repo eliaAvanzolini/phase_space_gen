@@ -8,9 +8,9 @@ e genera tabelle comparative, heatmap e barplot.
 
 Uso:
     python compare_conditional_models.py \\
-        --cfm_dir outputs/cfm_conditional_6mv_10mv \\
-        --nsf_dir outputs/nsf_conditional_6mv_10mv \\
-        --gan_dir outputs/gan_conditional_6mv_10mv \\
+        --cfm_dir outputs/cfm_conditional_6mv_10mv_139k \\
+        --nsf_dir outputs/nsf_conditional_6mv_10mv_139k \\
+        --gan_dir outputs/gan_conditional_6mv_10mv_139k \\
         --output_dir outputs/comparison_conditional
 """
 

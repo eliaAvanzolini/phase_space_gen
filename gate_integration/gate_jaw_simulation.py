@@ -19,7 +19,7 @@ Architettura simulazione:
 Uso:
     # Singola configurazione: 6MV con campo 5×5
     python gate_integration/gate_jaw_simulation.py \\
-        --phsp_source data/ELEKTA_PRECISE_6mv_part1_big.IAEAphsp \\
+        --phsp_source data/ELEKTA_PRECISE_6mv_part1.root \\
         --E_nom 6.0 --jaw_x 2.5 --jaw_y 2.5 \\
         --output_dir outputs/gate_jaw/6mv_5x5
 
@@ -72,12 +72,12 @@ PHSP_PLANE_Z_CM = 50.0  # appena sotto la X jaw (Z=44 cm)
 # Configurazioni batch da simulare
 BATCH_CONFIGS = [
     # (nome, E_nom, jaw_x_cm, jaw_y_cm, file_sorgente)
-    ("6mv_5x5",   6.0, 2.5, 2.5, "data/ELEKTA_PRECISE_6mv_part1_big.IAEAphsp"),
-    ("6mv_10x10", 6.0, 5.0, 5.0, "data/ELEKTA_PRECISE_6mv_part1_big.IAEAphsp"),
-    ("6mv_20x20", 6.0, 10.0, 10.0, "data/ELEKTA_PRECISE_6mv_part1_big.IAEAphsp"),
-    ("10mv_5x5",  10.0, 2.5, 2.5, "data/ELEKTA_PRECISE_10mv_part1.IAEAphsp"),
-    ("10mv_10x10",10.0, 5.0, 5.0, "data/ELEKTA_PRECISE_10mv_part1.IAEAphsp"),
-    ("10mv_20x20",10.0, 10.0, 10.0, "data/ELEKTA_PRECISE_10mv_part1.IAEAphsp"),
+    ("6mv_5x5",   6.0, 2.5, 2.5, "data/ELEKTA_PRECISE_6mv_part1.root"),
+    ("6mv_10x10", 6.0, 5.0, 5.0, "data/ELEKTA_PRECISE_6mv_part1.root"),
+    ("6mv_20x20", 6.0, 10.0, 10.0, "data/ELEKTA_PRECISE_6mv_part1.root"),
+    ("10mv_5x5",  10.0, 2.5, 2.5, "data/ELEKTA_PRECISE_10mv_part1.root"),
+    ("10mv_10x10",10.0, 5.0, 5.0, "data/ELEKTA_PRECISE_10mv_part1.root"),
+    ("10mv_20x20",10.0, 10.0, 10.0, "data/ELEKTA_PRECISE_10mv_part1.root"),
 ]
 
 
@@ -293,7 +293,7 @@ cm = g4_units.cm
 sim = gate.Simulation()
 sim.g4_verbose = False
 sim.visu = False
-sim.number_of_threads = 4
+sim.number_of_threads = 1
 sim.random_seed = 42
 
 # World
@@ -405,7 +405,7 @@ def generate_all_scripts(output_base: str = "outputs/gate_jaw"):
             jaw_y_cm=jaw_y,
             E_nom=E_nom,
             output_dir=str(out_dir),
-            n_particles=0,
+            n_particles=50000000,
             phsp_plane_z_cm=PHSP_PLANE_Z_CM,
         )
         scripts.append(str(out_dir / f"run_{E_nom:.0f}mv_{2*jaw_x:.0f}x{2*jaw_y:.0f}.py"))
