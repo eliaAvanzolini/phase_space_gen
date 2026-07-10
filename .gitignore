@@ -39,3 +39,12 @@ fix_nsf_eval.py
 *.err
 *.log
 *.tar.gz
+
+# ── Spazzatura computazionale del cluster HPC ───────────────────────────────
+*.pbs
+*.sh
+*.o[0-9]*
+*.e[0-9]*
+*.err
+*.log
+*.tar.gz
