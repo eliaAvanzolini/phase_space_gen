@@ -310,12 +310,21 @@ class WGANGPTrainer:
         return metrics
 
     def save(self, path: str):
+        # NOTA: self.history cresce di 1 entry per CHIAMATA di train_step (una
+        # per batch, non per epoca - 54.688 volte/epoca in questo esperimento).
+        # Salvarla per intero ad ogni checkpoint fa crescere il file senza
+        # limite (50MB -> 300MB+ nel giro di 160 epoche). Qui ne salviamo solo
+        # una coda limitata, sufficiente per diagnostica, senza bloat.
+        MAX_HISTORY_ENTRIES = 5000
+        history_truncated = {
+            k: v[-MAX_HISTORY_ENTRIES:] for k, v in self.history.items()
+        }
         torch.save({
             "generator":  self.G.state_dict(),
             "critic":     self.D.state_dict(),
             "opt_G":      self.opt_G.state_dict(),
             "opt_D":      self.opt_D.state_dict(),
-            "history":    self.history,
+            "history":    history_truncated,
         }, path)
 
     def load(self, path: str):

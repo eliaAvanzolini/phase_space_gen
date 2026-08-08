@@ -99,6 +99,7 @@ def main():
     final_cond = []
     
     if not args.no_balance and len(counts) > 1:
+        np.random.seed(42)  # riproducibilita' del sottocampionamento
         min_count = min(counts.values())
         print(f"\n⚖️ Bilanciamento attivo. Target di campionamento: {min_count} eventi stabili per classe.")
         

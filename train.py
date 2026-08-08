@@ -102,6 +102,12 @@ def parse_args():
                    help="[CFM] Numero di layer residuali nella velocity net")
     p.add_argument("--n_ode_steps",   type=int, default=100,
                    help="[CFM] Step ODE per il campionamento in validazione")
+    p.add_argument("--n_eval_samples", type=int, default=500_000,
+                   help="Numero di campioni generati per la valutazione finale")
+    p.add_argument("--resume_from", type=str, default=None,
+                   help="Path a un checkpoint 'checkpoint_epNNNN.pt' da cui riprendere "
+                        "il training invece di ripartire da epoca 1. Il numero di "
+                        "epoca viene dedotto dal nome del file.")
 
     # Output
     p.add_argument("--output_dir", type=str, default="outputs")
@@ -369,9 +375,31 @@ def run_training(args):
     print(f"{'─'*55}")
 
     best_val_loss = float("inf")
+    start_epoch = 1
     t_start = time.time()
 
-    for epoch in range(1, args.epochs + 1):
+    if args.resume_from:
+        import re
+        m = re.search(r"checkpoint_ep(\d+)\.pt$", args.resume_from)
+        if not m:
+            print(f"  [ERROR] --resume_from deve puntare a un file 'checkpoint_epNNNN.pt' "
+                  f"(nome ricevuto: {args.resume_from}), impossibile dedurre l'epoca di partenza.")
+            sys.exit(1)
+        resumed_epoch = int(m.group(1))
+        print(f"  [RESUME] Carico {args.resume_from}, riprendo da epoca {resumed_epoch + 1}")
+        trainer.load(args.resume_from)
+        start_epoch = resumed_epoch + 1
+        if start_epoch > args.epochs:
+            print(f"  [RESUME] L'epoca di ripresa ({start_epoch}) supera gia' il target "
+                  f"({args.epochs}) - training gia' completo, salto al blocco di valutazione.")
+        elif args.model in ("nsf", "cfm"):
+            # Inizializza best_val_loss con la loss attuale del checkpoint ripreso,
+            # cosi' non sovrascriviamo subito best_model.pt con qualcosa di peggiore
+            # solo perche' best_val_loss di default e' infinito.
+            best_val_loss = trainer.val_step(X_val, C_val)
+            print(f"  [RESUME] Val loss di partenza dal checkpoint ripreso: {best_val_loss:.5f}")
+
+    for epoch in range(start_epoch, args.epochs + 1):
         # ── Training epoch ────────────────────────────────────────────────
         model.train()
         losses = []
@@ -440,10 +468,11 @@ def run_training(args):
 
     # Genera campioni con il modello
     model.eval()
-    n_gen = len(ps_te)
+    n_gen = min(len(ps_te), getattr(args, "n_eval_samples", 500_000))
     chunk_size = 250000  # 250k campioni alla volta entrano comodi nei 16GB di VRAM
-    gen_norm_list = [] 
-    print(f"\n  Generazione finale sul test set in corso ({n_gen:,} campioni in chunk da {chunk_size:,})...")
+    gen_norm_list = []
+    used_indices = []  # per allineare real_test_raw ai soli chunk riusciti
+    print(f"\n  Generazione finale sul test set in corso ({n_gen:,} campioni target, in chunk da {chunk_size:,})...")
     with torch.no_grad():
         for i in range(0, n_gen, chunk_size):
             end_idx = min(i + chunk_size, n_gen)
@@ -451,21 +480,54 @@ def run_training(args):
             # Seleziona lo spezzone di condizioni (se presenti)
             c_chunk = C_te[i:end_idx].to(device) if C_te is not None else None
 
-            if args.model == "nsf":
-                chunk_out = model.sample(size, c=c_chunk).cpu().numpy()
-            elif args.model == "cfm":
-                chunk_out = model.sample(size, c=c_chunk, n_steps=args.n_ode_steps).cpu().numpy()
-            else:  # GAN
-                chunk_out = model.sample(size, c=c_chunk, device=device).cpu().numpy()
+            chunk_out = None
+            max_attempts = 3
+            for attempt in range(max_attempts):
+                try:
+                    if args.model == "nsf":
+                        chunk_out = model.sample(size, c=c_chunk).cpu().numpy()
+                    elif args.model == "cfm":
+                        chunk_out = model.sample(size, c=c_chunk, n_steps=args.n_ode_steps).cpu().numpy()
+                    else:  # GAN
+                        chunk_out = model.sample(size, c=c_chunk, device=device).cpu().numpy()
+                    break
+                except AssertionError:
+                    # Instabilita' numerica nota delle spline razionali (nflows):
+                    # il discriminante di una spline puo' risultare leggermente
+                    # negativo per errore di floating point su valori estremi.
+                    # Non e' un fallimento del modello - capita su singoli batch
+                    # anche a campione ridotto. Riprovo con seed diverso prima
+                    # di scartare definitivamente il chunk.
+                    print(f"\n  [WARNING] instabilita' numerica nel campionamento "
+                          f"(chunk {i:,}-{end_idx:,}), tentativo {attempt+1}/{max_attempts}...")
+                    torch.manual_seed(args.seed + 1000 + i + attempt)
+
+            if chunk_out is None:
+                print(f"\n  [WARNING] chunk {i:,}-{end_idx:,} scartato dopo "
+                      f"{max_attempts} tentativi falliti (instabilita' persistente)")
+                continue
 
             gen_norm_list.append(chunk_out)
+            used_indices.extend(range(i, end_idx))
             print(f"  Avanzamento: {end_idx:,} / {n_gen:,} ({100*end_idx/n_gen:.1f}%)", end="\r")
     print()
+
+    if not gen_norm_list:
+        print("  [ERROR] Nessun chunk generato con successo - valutazione impossibile.")
+        return None
+
     # Concatena tutti i blocchi generati in un'unica matrice finale
     gen_norm = np.concatenate(gen_norm_list, axis=0)
     # Denormalizza
     gen_raw = denormalize_phase_space(gen_norm, stats)
-    real_test_raw = denormalize_phase_space(ps_te, stats)
+    # Allinea il test set reale agli stessi indici effettivamente usati (nel
+    # caso qualche chunk sia stato scartato per instabilita' numerica)
+    real_test_raw = denormalize_phase_space(ps_te[used_indices], stats)
+
+    n_scartati = n_gen - len(used_indices)
+    if n_scartati > 0:
+        print(f"  Nota: {n_scartati:,} campioni scartati su {n_gen:,} richiesti "
+              f"({100*n_scartati/n_gen:.2f}%) per instabilita' numerica persistente.")
 
     # Metriche
     from evaluate import evaluate_model

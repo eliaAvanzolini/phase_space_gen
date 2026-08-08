@@ -188,6 +188,24 @@ class PhaseSpaceNSF(nn.Module):
         context = self._encode_context(c)
         return self.flow.log_prob(s, context=context)
 
+    # def sample(
+    #     self,
+    #     n_samples: int,
+    #     c: Optional[torch.Tensor] = None,
+    # ) -> torch.Tensor:
+    #     """
+    #     Genera n_samples nuovi vettori di phase space.
+
+    #     Generazione in un singolo forward pass (ODE solve con NFow).
+    #     """
+    #     context = self._encode_context(c)
+    #     with torch.no_grad():
+    #         samples = self.flow.sample(n_samples, context=context)
+    #         # nflows restituisce (1, n_samples, dim) quando context è fornito
+    #         # oppure (n_samples, dim) senza context → squeeze per uniformare
+    #         if samples.dim() == 3:
+    #             samples = samples.squeeze(0)
+    #         return samples
     def sample(
         self,
         n_samples: int,
@@ -195,18 +213,27 @@ class PhaseSpaceNSF(nn.Module):
     ) -> torch.Tensor:
         """
         Genera n_samples nuovi vettori di phase space.
-
-        Generazione in un singolo forward pass (ODE solve con NFow).
         """
         context = self._encode_context(c)
         with torch.no_grad():
-            samples = self.flow.sample(n_samples, context=context)
-            # nflows restituisce (1, n_samples, dim) quando context è fornito
-            # oppure (n_samples, dim) senza context → squeeze per uniformare
-            if samples.dim() == 3:
-                samples = samples.squeeze(0)
-            return samples
+            if context is not None:
+                # Caso A: c ha già batch_size == n_samples (1 condizione per ciascun campione)
+                if context.dim() == 2 and context.shape[0] == n_samples:
+                    # Chiediamo a nflows 1 campione PER RIGA di context -> tensor di forma (n_samples, 1, dim)
+                    samples = self.flow.sample(1, context=context)
+                    if samples.dim() == 3:
+                        samples = samples.squeeze(1)  # Diventa (n_samples, dim)
+                
+                # Caso B: c ha 1 riga (generiamo n_samples per un'unica condizione specificata)
+                else:
+                    samples = self.flow.sample(n_samples, context=context)
+                    if samples.dim() == 3:
+                        samples = samples.squeeze(0)  # Diventa (n_samples, dim)
+            else:
+                # Caso C: Modello non condizionato
+                samples = self.flow.sample(n_samples)
 
+            return samples
     def _encode_context(self, c: Optional[torch.Tensor]) -> Optional[torch.Tensor]:
         if c is None or self.cond_encoder is None:
             return None

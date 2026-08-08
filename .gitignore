@@ -15,5 +15,7 @@ __pycache__/
 *.o[0-9]*
 *.e[0-9]*
 *.err
+*.out
 *.log
 *.tar.gz
+scripts*
