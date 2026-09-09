@@ -1,0 +1,33 @@
+{
+  "cutoff_cm": 1.0,
+  "full_volume": {
+    "3pct_3mm": {
+      "pass_rate_pct": 91.21315357811878,
+      "n_valid": 206058
+    },
+    "2pct_2mm_clinico": {
+      "pass_rate_pct": 77.76354230362325,
+      "n_valid": 206058
+    }
+  },
+  "surface_buildup": {
+    "3pct_3mm": {
+      "pass_rate_pct": 89.52554222285819,
+      "n_valid": 48919
+    },
+    "2pct_2mm_clinico": {
+      "pass_rate_pct": 79.4272164189783,
+      "n_valid": 48919
+    }
+  },
+  "bulk_excl_buildup": {
+    "3pct_3mm": {
+      "pass_rate_pct": 91.73852449105568,
+      "n_valid": 157139
+    },
+    "2pct_2mm_clinico": {
+      "pass_rate_pct": 77.24562330166286,
+      "n_valid": 157139
+    }
+  }
+}

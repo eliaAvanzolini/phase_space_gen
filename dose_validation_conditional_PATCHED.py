@@ -19,21 +19,28 @@ ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT))
 
 MODELS = {
+    # FIX: puntavano a outputs/cfm_conditional_6mv_10mv/ (e affini), che e'
+    # il checkpoint dell'ESPERIMENTO 1 (interpolazione solo-energia, vedi
+    # generate_interpolated_energy.py). Il modello jaws (3 variabili di
+    # condizionamento, addestrato il 22 Luglio) e' salvato in
+    # outputs/run_*_conditional/ - confermato via `find ... -name best_model.pt`
+    # sul cluster reale (non fidarsi ciecamente della struttura di un vecchio
+    # zip locale: qui e' stata verificata con ls diretto sul cluster).
     "cfm": {
-        "checkpoint": "outputs/cfm_conditional_6mv_10mv/best_model.pt",
-        "stats_json": "outputs/cfm_conditional_6mv_10mv/normalization_stats.json",
+        "checkpoint": "outputs/run_cfm_conditional/best_model.pt",
+        "stats_json": "outputs/run_cfm_conditional/normalization_stats.json",
         "model_type": "cfm",
         "label": "CFM",
     },
     "nsf": {
-        "checkpoint": "outputs/nsf_conditional_6mv_10mv/best_model.pt",
-        "stats_json": "outputs/nsf_conditional_6mv_10mv/normalization_stats.json",
+        "checkpoint": "outputs/run_nsf_conditional/best_model.pt",
+        "stats_json": "outputs/run_nsf_conditional/normalization_stats.json",
         "model_type": "nsf",
         "label": "NSF",
     },
     "gan": {
-        "checkpoint": "outputs/gan_conditional_6mv_10mv/best_model.pt",
-        "stats_json": "outputs/gan_conditional_6mv_10mv/normalization_stats.json",
+        "checkpoint": "outputs/run_gan_conditional/best_model.pt",
+        "stats_json": "outputs/run_gan_conditional/normalization_stats.json",
         "model_type": "gan_sarrut",
         "label": "GAN",
     },

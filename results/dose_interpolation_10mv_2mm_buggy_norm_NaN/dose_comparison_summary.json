@@ -1,0 +1,20 @@
+{
+  "10mv_open_field": {
+    "cfm": {
+      "3pct_3mm": {
+        "pass_rate_pct": 94.19706862229373,
+        "n_valid": 96951
+      },
+      "2pct_2mm_clinico": {
+        "pass_rate_pct": 83.86401378015698,
+        "n_valid": 96951
+      },
+      "zscore_uncertainty": {
+        "mean_abs_z": NaN,
+        "frac_within_2sigma_pct": NaN,
+        "frac_within_3sigma_pct": NaN,
+        "n_valid": 0
+      }
+    }
+  }
+}

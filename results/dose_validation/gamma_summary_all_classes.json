@@ -1,0 +1,242 @@
+{
+  "6mv_5x5": {
+    "cfm": {
+      "delta_medio_pct": -15.765841456189717,
+      "criteri": {
+        "3pct_3mm": {
+          "dose_pct": 3.0,
+          "dist_mm": 3.0,
+          "n_valid_voxels": 68477,
+          "gamma_mean": 0.8210040784898249,
+          "pass_rate_pct": 74.60899280050236
+        },
+        "2pct_2mm_clinico": {
+          "dose_pct": 2.0,
+          "dist_mm": 2.0,
+          "n_valid_voxels": 68477,
+          "gamma_mean": 1.030463265437006,
+          "pass_rate_pct": 56.1736057362326
+        }
+      }
+    },
+    "nsf": {
+      "delta_medio_pct": -15.25632784336604,
+      "criteri": {
+        "3pct_3mm": {
+          "dose_pct": 3.0,
+          "dist_mm": 3.0,
+          "n_valid_voxels": 68477,
+          "gamma_mean": 0.8084759151600179,
+          "pass_rate_pct": 75.56989938227434
+        },
+        "2pct_2mm_clinico": {
+          "dose_pct": 2.0,
+          "dist_mm": 2.0,
+          "n_valid_voxels": 68477,
+          "gamma_mean": 1.015670626756647,
+          "pass_rate_pct": 57.282007097273535
+        }
+      }
+    }
+  },
+  "6mv_10x10": {
+    "cfm": {
+      "delta_medio_pct": -18.844450778329037,
+      "criteri": {
+        "3pct_3mm": {
+          "dose_pct": 3.0,
+          "dist_mm": 3.0,
+          "n_valid_voxels": 252980,
+          "gamma_mean": 0.9804852091304055,
+          "pass_rate_pct": 61.850343900703606
+        },
+        "2pct_2mm_clinico": {
+          "dose_pct": 2.0,
+          "dist_mm": 2.0,
+          "n_valid_voxels": 252980,
+          "gamma_mean": 1.2181122986774517,
+          "pass_rate_pct": 41.60921812000949
+        }
+      }
+    },
+    "nsf": {
+      "delta_medio_pct": -18.644907328376508,
+      "criteri": {
+        "3pct_3mm": {
+          "dose_pct": 3.0,
+          "dist_mm": 3.0,
+          "n_valid_voxels": 252980,
+          "gamma_mean": 0.9432422557359551,
+          "pass_rate_pct": 64.83437425883469
+        },
+        "2pct_2mm_clinico": {
+          "dose_pct": 2.0,
+          "dist_mm": 2.0,
+          "n_valid_voxels": 252980,
+          "gamma_mean": 1.1762960701801386,
+          "pass_rate_pct": 44.63949719345403
+        }
+      }
+    }
+  },
+  "6mv_20x20": {
+    "cfm": {
+      "delta_medio_pct": -17.873566591426226,
+      "criteri": {
+        "3pct_3mm": {
+          "dose_pct": 3.0,
+          "dist_mm": 3.0,
+          "n_valid_voxels": 404560,
+          "gamma_mean": 0.9470851326351742,
+          "pass_rate_pct": 64.81980423175796
+        },
+        "2pct_2mm_clinico": {
+          "dose_pct": 2.0,
+          "dist_mm": 2.0,
+          "n_valid_voxels": 404560,
+          "gamma_mean": 1.1757537191275722,
+          "pass_rate_pct": 44.90434051809373
+        }
+      }
+    },
+    "nsf": {
+      "delta_medio_pct": -18.390154124123782,
+      "criteri": {
+        "3pct_3mm": {
+          "dose_pct": 3.0,
+          "dist_mm": 3.0,
+          "n_valid_voxels": 404560,
+          "gamma_mean": 0.92983100994616,
+          "pass_rate_pct": 66.20674312833695
+        },
+        "2pct_2mm_clinico": {
+          "dose_pct": 2.0,
+          "dist_mm": 2.0,
+          "n_valid_voxels": 404560,
+          "gamma_mean": 1.1574512546116957,
+          "pass_rate_pct": 46.220585327269134
+        }
+      }
+    }
+  },
+  "10mv_5x5": {
+    "cfm": {
+      "delta_medio_pct": -16.08423530099959,
+      "criteri": {
+        "3pct_3mm": {
+          "dose_pct": 3.0,
+          "dist_mm": 3.0,
+          "n_valid_voxels": 79151,
+          "gamma_mean": 0.8859994920247201,
+          "pass_rate_pct": 70.02817399653827
+        },
+        "2pct_2mm_clinico": {
+          "dose_pct": 2.0,
+          "dist_mm": 2.0,
+          "n_valid_voxels": 79151,
+          "gamma_mean": 1.0905973051486448,
+          "pass_rate_pct": 52.53881820823489
+        }
+      }
+    },
+    "nsf": {
+      "delta_medio_pct": -16.03719299465281,
+      "criteri": {
+        "3pct_3mm": {
+          "dose_pct": 3.0,
+          "dist_mm": 3.0,
+          "n_valid_voxels": 79151,
+          "gamma_mean": 0.8563408422501831,
+          "pass_rate_pct": 72.41475155083322
+        },
+        "2pct_2mm_clinico": {
+          "dose_pct": 2.0,
+          "dist_mm": 2.0,
+          "n_valid_voxels": 79151,
+          "gamma_mean": 1.0568230466500161,
+          "pass_rate_pct": 55.21976980707761
+        }
+      }
+    }
+  },
+  "10mv_10x10": {
+    "cfm": {
+      "delta_medio_pct": -14.312678465133128,
+      "criteri": {
+        "3pct_3mm": {
+          "dose_pct": 3.0,
+          "dist_mm": 3.0,
+          "n_valid_voxels": 292285,
+          "gamma_mean": 0.7490841976182452,
+          "pass_rate_pct": 80.59770429546505
+        },
+        "2pct_2mm_clinico": {
+          "dose_pct": 2.0,
+          "dist_mm": 2.0,
+          "n_valid_voxels": 292285,
+          "gamma_mean": 0.9369546054146801,
+          "pass_rate_pct": 64.17127119078981
+        }
+      }
+    },
+    "nsf": {
+      "delta_medio_pct": -15.103544750654788,
+      "criteri": {
+        "3pct_3mm": {
+          "dose_pct": 3.0,
+          "dist_mm": 3.0,
+          "n_valid_voxels": 292285,
+          "gamma_mean": 0.7784691251188208,
+          "pass_rate_pct": 78.2544434370563
+        },
+        "2pct_2mm_clinico": {
+          "dose_pct": 2.0,
+          "dist_mm": 2.0,
+          "n_valid_voxels": 292285,
+          "gamma_mean": 0.9729598115868292,
+          "pass_rate_pct": 61.14922079477223
+        }
+      }
+    }
+  },
+  "10mv_20x20": {
+    "cfm": {
+      "delta_medio_pct": -11.62561023131963,
+      "criteri": {
+        "3pct_3mm": {
+          "dose_pct": 3.0,
+          "dist_mm": 3.0,
+          "n_valid_voxels": 467346,
+          "gamma_mean": 0.6600536984977061,
+          "pass_rate_pct": 87.68364338199108
+        },
+        "2pct_2mm_clinico": {
+          "dose_pct": 2.0,
+          "dist_mm": 2.0,
+          "n_valid_voxels": 467346,
+          "gamma_mean": 0.8219900928915365,
+          "pass_rate_pct": 73.97517043047336
+        }
+      }
+    },
+    "nsf": {
+      "delta_medio_pct": -12.07416947737137,
+      "criteri": {
+        "3pct_3mm": {
+          "dose_pct": 3.0,
+          "dist_mm": 3.0,
+          "n_valid_voxels": 467346,
+          "gamma_mean": 0.6648389146279639,
+          "pass_rate_pct": 87.29891771835
+        },
+        "2pct_2mm_clinico": {
+          "dose_pct": 2.0,
+          "dist_mm": 2.0,
+          "n_valid_voxels": 467346,
+          "gamma_mean": 0.8278790601749806,
+          "pass_rate_pct": 73.40963654337472
+        }
+      }
+    }
+  }
+}

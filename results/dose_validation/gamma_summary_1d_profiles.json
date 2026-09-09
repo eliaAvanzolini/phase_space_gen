@@ -1,0 +1,422 @@
+{
+  "6mv_5x5": {
+    "cfm": {
+      "pdd": {
+        "3pct_3mm": {
+          "pass_rate_pct": 29.09090909090909,
+          "n_valid": 55
+        },
+        "2pct_2mm_clinico": {
+          "pass_rate_pct": 12.727272727272727,
+          "n_valid": 55
+        }
+      },
+      "transverse": {
+        "z3.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 48.0,
+            "n_valid": 25
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 28.000000000000004,
+            "n_valid": 25
+          }
+        },
+        "z10.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 29.411764705882355,
+            "n_valid": 17
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 17.647058823529413,
+            "n_valid": 17
+          }
+        }
+      }
+    },
+    "nsf": {
+      "pdd": {
+        "3pct_3mm": {
+          "pass_rate_pct": 60.0,
+          "n_valid": 55
+        },
+        "2pct_2mm_clinico": {
+          "pass_rate_pct": 41.81818181818181,
+          "n_valid": 55
+        }
+      },
+      "transverse": {
+        "z3.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 76.0,
+            "n_valid": 25
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 48.0,
+            "n_valid": 25
+          }
+        },
+        "z10.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 47.05882352941176,
+            "n_valid": 17
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 35.294117647058826,
+            "n_valid": 17
+          }
+        }
+      }
+    }
+  },
+  "6mv_10x10": {
+    "cfm": {
+      "pdd": {
+        "3pct_3mm": {
+          "pass_rate_pct": 0.0,
+          "n_valid": 55
+        },
+        "2pct_2mm_clinico": {
+          "pass_rate_pct": 0.0,
+          "n_valid": 55
+        }
+      },
+      "transverse": {
+        "z3.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 35.08771929824561,
+            "n_valid": 57
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 21.052631578947366,
+            "n_valid": 57
+          }
+        },
+        "z10.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 15.217391304347828,
+            "n_valid": 46
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 6.521739130434782,
+            "n_valid": 46
+          }
+        }
+      }
+    },
+    "nsf": {
+      "pdd": {
+        "3pct_3mm": {
+          "pass_rate_pct": 10.909090909090908,
+          "n_valid": 55
+        },
+        "2pct_2mm_clinico": {
+          "pass_rate_pct": 7.2727272727272725,
+          "n_valid": 55
+        }
+      },
+      "transverse": {
+        "z3.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 17.543859649122805,
+            "n_valid": 57
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 12.280701754385964,
+            "n_valid": 57
+          }
+        },
+        "z10.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 13.043478260869565,
+            "n_valid": 46
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 10.869565217391305,
+            "n_valid": 46
+          }
+        }
+      }
+    }
+  },
+  "6mv_20x20": {
+    "cfm": {
+      "pdd": {
+        "3pct_3mm": {
+          "pass_rate_pct": 0.0,
+          "n_valid": 55
+        },
+        "2pct_2mm_clinico": {
+          "pass_rate_pct": 0.0,
+          "n_valid": 55
+        }
+      },
+      "transverse": {
+        "z3.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 30.107526881720432,
+            "n_valid": 93
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 24.731182795698924,
+            "n_valid": 93
+          }
+        },
+        "z10.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 10.638297872340425,
+            "n_valid": 47
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 6.382978723404255,
+            "n_valid": 47
+          }
+        }
+      }
+    },
+    "nsf": {
+      "pdd": {
+        "3pct_3mm": {
+          "pass_rate_pct": 38.18181818181819,
+          "n_valid": 55
+        },
+        "2pct_2mm_clinico": {
+          "pass_rate_pct": 29.09090909090909,
+          "n_valid": 55
+        }
+      },
+      "transverse": {
+        "z3.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 41.935483870967744,
+            "n_valid": 93
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 32.25806451612903,
+            "n_valid": 93
+          }
+        },
+        "z10.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 34.04255319148936,
+            "n_valid": 47
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 29.78723404255319,
+            "n_valid": 47
+          }
+        }
+      }
+    }
+  },
+  "10mv_5x5": {
+    "cfm": {
+      "pdd": {
+        "3pct_3mm": {
+          "pass_rate_pct": 30.303030303030305,
+          "n_valid": 66
+        },
+        "2pct_2mm_clinico": {
+          "pass_rate_pct": 21.21212121212121,
+          "n_valid": 66
+        }
+      },
+      "transverse": {
+        "z3.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 74.19354838709677,
+            "n_valid": 31
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 64.51612903225806,
+            "n_valid": 31
+          }
+        },
+        "z10.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 66.66666666666666,
+            "n_valid": 18
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 44.44444444444444,
+            "n_valid": 18
+          }
+        }
+      }
+    },
+    "nsf": {
+      "pdd": {
+        "3pct_3mm": {
+          "pass_rate_pct": 63.63636363636363,
+          "n_valid": 66
+        },
+        "2pct_2mm_clinico": {
+          "pass_rate_pct": 46.96969696969697,
+          "n_valid": 66
+        }
+      },
+      "transverse": {
+        "z3.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 64.51612903225806,
+            "n_valid": 31
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 45.16129032258064,
+            "n_valid": 31
+          }
+        },
+        "z10.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 55.55555555555556,
+            "n_valid": 18
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 50.0,
+            "n_valid": 18
+          }
+        }
+      }
+    }
+  },
+  "10mv_10x10": {
+    "cfm": {
+      "pdd": {
+        "3pct_3mm": {
+          "pass_rate_pct": 75.71428571428571,
+          "n_valid": 70
+        },
+        "2pct_2mm_clinico": {
+          "pass_rate_pct": 57.14285714285714,
+          "n_valid": 70
+        }
+      },
+      "transverse": {
+        "z3.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 74.57627118644068,
+            "n_valid": 59
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 66.10169491525424,
+            "n_valid": 59
+          }
+        },
+        "z10.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 61.111111111111114,
+            "n_valid": 36
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 55.55555555555556,
+            "n_valid": 36
+          }
+        }
+      }
+    },
+    "nsf": {
+      "pdd": {
+        "3pct_3mm": {
+          "pass_rate_pct": 55.714285714285715,
+          "n_valid": 70
+        },
+        "2pct_2mm_clinico": {
+          "pass_rate_pct": 44.285714285714285,
+          "n_valid": 70
+        }
+      },
+      "transverse": {
+        "z3.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 59.32203389830508,
+            "n_valid": 59
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 38.983050847457626,
+            "n_valid": 59
+          }
+        },
+        "z10.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 63.888888888888886,
+            "n_valid": 36
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 63.888888888888886,
+            "n_valid": 36
+          }
+        }
+      }
+    }
+  },
+  "10mv_20x20": {
+    "cfm": {
+      "pdd": {
+        "3pct_3mm": {
+          "pass_rate_pct": 70.1492537313433,
+          "n_valid": 67
+        },
+        "2pct_2mm_clinico": {
+          "pass_rate_pct": 49.25373134328358,
+          "n_valid": 67
+        }
+      },
+      "transverse": {
+        "z3.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 68.47826086956522,
+            "n_valid": 92
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 53.2608695652174,
+            "n_valid": 92
+          }
+        },
+        "z10.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 76.19047619047619,
+            "n_valid": 63
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 60.317460317460316,
+            "n_valid": 63
+          }
+        }
+      }
+    },
+    "nsf": {
+      "pdd": {
+        "3pct_3mm": {
+          "pass_rate_pct": 92.53731343283582,
+          "n_valid": 67
+        },
+        "2pct_2mm_clinico": {
+          "pass_rate_pct": 76.11940298507463,
+          "n_valid": 67
+        }
+      },
+      "transverse": {
+        "z3.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 59.78260869565217,
+            "n_valid": 92
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 51.08695652173913,
+            "n_valid": 92
+          }
+        },
+        "z10.0cm": {
+          "3pct_3mm": {
+            "pass_rate_pct": 65.07936507936508,
+            "n_valid": 63
+          },
+          "2pct_2mm_clinico": {
+            "pass_rate_pct": 53.96825396825397,
+            "n_valid": 63
+          }
+        }
+      }
+    }
+  }
+}

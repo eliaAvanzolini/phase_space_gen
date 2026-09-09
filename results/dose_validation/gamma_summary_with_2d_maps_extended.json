@@ -1,0 +1,696 @@
+{
+  "6mv_5x5": {
+    "cfm": {
+      "3pct_3mm": {
+        "pass_rate_pct": 74.6
+      },
+      "2pct_2mm_clinico": {
+        "pass_rate_pct": 56.2
+      },
+      "zscore_uncertainty": {
+        "frac_within_2sigma_pct": 100.0
+      }
+    },
+    "nsf": {
+      "3pct_3mm": {
+        "pass_rate_pct": 75.6
+      },
+      "2pct_2mm_clinico": {
+        "pass_rate_pct": 57.3
+      },
+      "zscore_uncertainty": {
+        "frac_within_2sigma_pct": 100.0
+      }
+    }
+  },
+  "6mv_10x10": {
+    "cfm": {
+      "3pct_3mm": {
+        "pass_rate_pct": 61.850343900703606,
+        "n_valid": 252980
+      },
+      "2pct_2mm_clinico": {
+        "pass_rate_pct": 41.60921812000949,
+        "n_valid": 252980
+      },
+      "zscore_uncertainty": {
+        "mean_abs_z": 1.0126471327819484,
+        "frac_within_2sigma_pct": 99.6605054696341,
+        "frac_within_3sigma_pct": 100.0,
+        "n_valid": 2651
+      },
+      "field_edges_by_depth_cm": {
+        "3.0": {
+          "left": {
+            "ref": {
+              "edge50_cm": -6.366549798086093,
+              "penumbra_80_20_mm": 3.507419705116863
+            },
+            "model": {
+              "edge50_cm": -6.962452137453413,
+              "penumbra_80_20_mm": NaN
+            },
+            "edge_shift_model_vs_ref_mm": -5.959023393673197
+          },
+          "right": {
+            "ref": {
+              "edge50_cm": 5.591928088768515,
+              "penumbra_80_20_mm": 27.84305598790839
+            },
+            "model": {
+              "edge50_cm": 3.323048065843075,
+              "penumbra_80_20_mm": 7.552197740959823
+            },
+            "edge_shift_model_vs_ref_mm": -22.688800229254404
+          }
+        },
+        "10.0": {
+          "left": {
+            "ref": {
+              "edge50_cm": -6.873195836930195,
+              "penumbra_80_20_mm": 1.6114864693735953
+            },
+            "model": {
+              "edge50_cm": -6.174073376925363,
+              "penumbra_80_20_mm": 5.623333077520645
+            },
+            "edge_shift_model_vs_ref_mm": 6.991224600048325
+          },
+          "right": {
+            "ref": {
+              "edge50_cm": 6.894336857221357,
+              "penumbra_80_20_mm": 33.69157249541673
+            },
+            "model": {
+              "edge50_cm": 3.3789243450268445,
+              "penumbra_80_20_mm": 2.532816965610709
+            },
+            "edge_shift_model_vs_ref_mm": -35.15412512194513
+          }
+        }
+      }
+    },
+    "nsf": {
+      "3pct_3mm": {
+        "pass_rate_pct": 64.83437425883469,
+        "n_valid": 252980
+      },
+      "2pct_2mm_clinico": {
+        "pass_rate_pct": 44.63949719345403,
+        "n_valid": 252980
+      },
+      "zscore_uncertainty": {
+        "mean_abs_z": 0.994583525655779,
+        "frac_within_2sigma_pct": 99.6982270841192,
+        "frac_within_3sigma_pct": 100.0,
+        "n_valid": 2651
+      },
+      "field_edges_by_depth_cm": {
+        "3.0": {
+          "left": {
+            "ref": {
+              "edge50_cm": -6.366549798086093,
+              "penumbra_80_20_mm": 3.507419705116863
+            },
+            "model": {
+              "edge50_cm": -6.977043528503866,
+              "penumbra_80_20_mm": NaN
+            },
+            "edge_shift_model_vs_ref_mm": -6.104937304177724
+          },
+          "right": {
+            "ref": {
+              "edge50_cm": 5.591928088768515,
+              "penumbra_80_20_mm": 27.84305598790839
+            },
+            "model": {
+              "edge50_cm": 3.5611380001646484,
+              "penumbra_80_20_mm": 12.826770347894247
+            },
+            "edge_shift_model_vs_ref_mm": -20.30790088603867
+          }
+        },
+        "10.0": {
+          "left": {
+            "ref": {
+              "edge50_cm": -6.873195836930195,
+              "penumbra_80_20_mm": 1.6114864693735953
+            },
+            "model": {
+              "edge50_cm": -6.847509090168643,
+              "penumbra_80_20_mm": 2.8149436721745236
+            },
+            "edge_shift_model_vs_ref_mm": 0.2568674676155247
+          },
+          "right": {
+            "ref": {
+              "edge50_cm": 6.894336857221357,
+              "penumbra_80_20_mm": 33.69157249541673
+            },
+            "model": {
+              "edge50_cm": 3.3936698526288693,
+              "penumbra_80_20_mm": 13.648974678663963
+            },
+            "edge_shift_model_vs_ref_mm": -35.00667004592488
+          }
+        }
+      }
+    }
+  },
+  "6mv_20x20": {
+    "cfm": {
+      "3pct_3mm": {
+        "pass_rate_pct": 64.81980423175796,
+        "n_valid": 404560
+      },
+      "2pct_2mm_clinico": {
+        "pass_rate_pct": 44.90434051809373,
+        "n_valid": 404560
+      },
+      "zscore_uncertainty": {
+        "mean_abs_z": 0.9976786835299186,
+        "frac_within_2sigma_pct": 99.89528795811519,
+        "frac_within_3sigma_pct": 100.0,
+        "n_valid": 3820
+      },
+      "field_edges_by_depth_cm": {
+        "3.0": {
+          "left": {
+            "ref": {
+              "edge50_cm": -9.74694415037387,
+              "penumbra_80_20_mm": NaN
+            },
+            "model": {
+              "edge50_cm": -9.618099250616565,
+              "penumbra_80_20_mm": NaN
+            },
+            "edge_shift_model_vs_ref_mm": 1.2884489975730595
+          },
+          "right": {
+            "ref": {
+              "edge50_cm": 8.526648643849715,
+              "penumbra_80_20_mm": 3.30820800949839
+            },
+            "model": {
+              "edge50_cm": 8.088396669092706,
+              "penumbra_80_20_mm": NaN
+            },
+            "edge_shift_model_vs_ref_mm": -4.382519747570086
+          }
+        },
+        "10.0": {
+          "left": {
+            "ref": {
+              "edge50_cm": -9.63585154696089,
+              "penumbra_80_20_mm": NaN
+            },
+            "model": {
+              "edge50_cm": -8.864974317644817,
+              "penumbra_80_20_mm": 11.445540807358228
+            },
+            "edge_shift_model_vs_ref_mm": 7.708772293160724
+          },
+          "right": {
+            "ref": {
+              "edge50_cm": 8.05487609579744,
+              "penumbra_80_20_mm": 0.6585131495692664
+            },
+            "model": {
+              "edge50_cm": 8.282010503893638,
+              "penumbra_80_20_mm": 3.100258996374805
+            },
+            "edge_shift_model_vs_ref_mm": 2.271344080961981
+          }
+        }
+      }
+    },
+    "nsf": {
+      "3pct_3mm": {
+        "pass_rate_pct": 66.20674312833695,
+        "n_valid": 404560
+      },
+      "2pct_2mm_clinico": {
+        "pass_rate_pct": 46.220585327269134,
+        "n_valid": 404560
+      },
+      "zscore_uncertainty": {
+        "mean_abs_z": 0.9833039520240047,
+        "frac_within_2sigma_pct": 99.92146596858639,
+        "frac_within_3sigma_pct": 100.0,
+        "n_valid": 3820
+      },
+      "field_edges_by_depth_cm": {
+        "3.0": {
+          "left": {
+            "ref": {
+              "edge50_cm": -9.74694415037387,
+              "penumbra_80_20_mm": NaN
+            },
+            "model": {
+              "edge50_cm": -9.428295023163388,
+              "penumbra_80_20_mm": 5.763600406724549
+            },
+            "edge_shift_model_vs_ref_mm": 3.1864912721048277
+          },
+          "right": {
+            "ref": {
+              "edge50_cm": 8.526648643849715,
+              "penumbra_80_20_mm": 3.30820800949839
+            },
+            "model": {
+              "edge50_cm": 8.32140945993316,
+              "penumbra_80_20_mm": 3.071499856861468
+            },
+            "edge_shift_model_vs_ref_mm": -2.052391839165555
+          }
+        },
+        "10.0": {
+          "left": {
+            "ref": {
+              "edge50_cm": -9.63585154696089,
+              "penumbra_80_20_mm": NaN
+            },
+            "model": {
+              "edge50_cm": -9.958459110645002,
+              "penumbra_80_20_mm": 4.592908221522727
+            },
+            "edge_shift_model_vs_ref_mm": -3.2260756368411236
+          },
+          "right": {
+            "ref": {
+              "edge50_cm": 8.05487609579744,
+              "penumbra_80_20_mm": 0.6585131495692664
+            },
+            "model": {
+              "edge50_cm": 8.693768951726673,
+              "penumbra_80_20_mm": 1.6127042610045983
+            },
+            "edge_shift_model_vs_ref_mm": 6.388928559292335
+          }
+        }
+      }
+    }
+  },
+  "10mv_5x5": {
+    "cfm": {
+      "3pct_3mm": {
+        "pass_rate_pct": 70.02817399653827,
+        "n_valid": 79151
+      },
+      "2pct_2mm_clinico": {
+        "pass_rate_pct": 52.53881820823489,
+        "n_valid": 79151
+      },
+      "zscore_uncertainty": {
+        "mean_abs_z": 0.8900265411225267,
+        "frac_within_2sigma_pct": 99.86559139784946,
+        "frac_within_3sigma_pct": 100.0,
+        "n_valid": 744
+      },
+      "field_edges_by_depth_cm": {
+        "3.0": {
+          "left": {
+            "ref": {
+              "edge50_cm": -3.541112129513735,
+              "penumbra_80_20_mm": 6.638476591286011
+            },
+            "model": {
+              "edge50_cm": -3.4782964200488946,
+              "penumbra_80_20_mm": 11.639941725143803
+            },
+            "edge_shift_model_vs_ref_mm": 0.6281570946484027
+          },
+          "right": {
+            "ref": {
+              "edge50_cm": 2.90961199487093,
+              "penumbra_80_20_mm": 4.96668819490683
+            },
+            "model": {
+              "edge50_cm": 0.8740964816035648,
+              "penumbra_80_20_mm": 27.309665609640742
+            },
+            "edge_shift_model_vs_ref_mm": -20.35515513267365
+          }
+        },
+        "10.0": {
+          "left": {
+            "ref": {
+              "edge50_cm": -3.691301641707962,
+              "penumbra_80_20_mm": 4.267753837624797
+            },
+            "model": {
+              "edge50_cm": -3.8305716034611965,
+              "penumbra_80_20_mm": 4.8807799551268305
+            },
+            "edge_shift_model_vs_ref_mm": -1.3926996175323447
+          },
+          "right": {
+            "ref": {
+              "edge50_cm": 0.9841670129294846,
+              "penumbra_80_20_mm": 27.11332510328881
+            },
+            "model": {
+              "edge50_cm": 0.6768243333040452,
+              "penumbra_80_20_mm": 0.954215791739812
+            },
+            "edge_shift_model_vs_ref_mm": -3.0734267962543935
+          }
+        }
+      }
+    },
+    "nsf": {
+      "3pct_3mm": {
+        "pass_rate_pct": 72.41475155083322,
+        "n_valid": 79151
+      },
+      "2pct_2mm_clinico": {
+        "pass_rate_pct": 55.21976980707761,
+        "n_valid": 79151
+      },
+      "zscore_uncertainty": {
+        "mean_abs_z": 0.8824074122157359,
+        "frac_within_2sigma_pct": 99.86559139784946,
+        "frac_within_3sigma_pct": 100.0,
+        "n_valid": 744
+      },
+      "field_edges_by_depth_cm": {
+        "3.0": {
+          "left": {
+            "ref": {
+              "edge50_cm": -3.541112129513735,
+              "penumbra_80_20_mm": 6.638476591286011
+            },
+            "model": {
+              "edge50_cm": -3.1797116837153863,
+              "penumbra_80_20_mm": 4.661279130973837
+            },
+            "edge_shift_model_vs_ref_mm": 3.6140044579834862
+          },
+          "right": {
+            "ref": {
+              "edge50_cm": 2.90961199487093,
+              "penumbra_80_20_mm": 4.96668819490683
+            },
+            "model": {
+              "edge50_cm": 1.189883022213256,
+              "penumbra_80_20_mm": 21.61791227150335
+            },
+            "edge_shift_model_vs_ref_mm": -17.19728972657674
+          }
+        },
+        "10.0": {
+          "left": {
+            "ref": {
+              "edge50_cm": -3.691301641707962,
+              "penumbra_80_20_mm": 4.267753837624797
+            },
+            "model": {
+              "edge50_cm": -3.296894630984604,
+              "penumbra_80_20_mm": 22.650551344010445
+            },
+            "edge_shift_model_vs_ref_mm": 3.9440701072335793
+          },
+          "right": {
+            "ref": {
+              "edge50_cm": 0.9841670129294846,
+              "penumbra_80_20_mm": 27.11332510328881
+            },
+            "model": {
+              "edge50_cm": 1.389364963409232,
+              "penumbra_80_20_mm": 16.24559202241105
+            },
+            "edge_shift_model_vs_ref_mm": 4.051979504797474
+          }
+        }
+      }
+    }
+  },
+  "10mv_10x10": {
+    "cfm": {
+      "3pct_3mm": {
+        "pass_rate_pct": 80.59770429546505,
+        "n_valid": 292285
+      },
+      "2pct_2mm_clinico": {
+        "pass_rate_pct": 64.17127119078981,
+        "n_valid": 292285
+      },
+      "zscore_uncertainty": {
+        "mean_abs_z": 0.8665116357114344,
+        "frac_within_2sigma_pct": 99.866577718479,
+        "frac_within_3sigma_pct": 100.0,
+        "n_valid": 2998
+      },
+      "field_edges_by_depth_cm": {
+        "3.0": {
+          "left": {
+            "ref": {
+              "edge50_cm": -6.684935600596447,
+              "penumbra_80_20_mm": 11.318232680292155
+            },
+            "model": {
+              "edge50_cm": -6.268347355600454,
+              "penumbra_80_20_mm": 7.306063768306981
+            },
+            "edge_shift_model_vs_ref_mm": 4.165882449959923
+          },
+          "right": {
+            "ref": {
+              "edge50_cm": 6.035445946703456,
+              "penumbra_80_20_mm": 21.858937722994227
+            },
+            "model": {
+              "edge50_cm": 3.9828448158539564,
+              "penumbra_80_20_mm": 29.59823874080105
+            },
+            "edge_shift_model_vs_ref_mm": -20.526011308494997
+          }
+        },
+        "10.0": {
+          "left": {
+            "ref": {
+              "edge50_cm": -6.604474770963995,
+              "penumbra_80_20_mm": 20.251385002669224
+            },
+            "model": {
+              "edge50_cm": -6.420579903084443,
+              "penumbra_80_20_mm": 6.7066700859156025
+            },
+            "edge_shift_model_vs_ref_mm": 1.8389486787955178
+          },
+          "right": {
+            "ref": {
+              "edge50_cm": 4.284699841483716,
+              "penumbra_80_20_mm": 10.383150293670077
+            },
+            "model": {
+              "edge50_cm": 5.380138521059713,
+              "penumbra_80_20_mm": 26.025571688205112
+            },
+            "edge_shift_model_vs_ref_mm": 10.95438679575997
+          }
+        }
+      }
+    },
+    "nsf": {
+      "3pct_3mm": {
+        "pass_rate_pct": 78.2544434370563,
+        "n_valid": 292285
+      },
+      "2pct_2mm_clinico": {
+        "pass_rate_pct": 61.14922079477223,
+        "n_valid": 292285
+      },
+      "zscore_uncertainty": {
+        "mean_abs_z": 0.879267407942719,
+        "frac_within_2sigma_pct": 99.83322214809873,
+        "frac_within_3sigma_pct": 100.0,
+        "n_valid": 2998
+      },
+      "field_edges_by_depth_cm": {
+        "3.0": {
+          "left": {
+            "ref": {
+              "edge50_cm": -6.684935600596447,
+              "penumbra_80_20_mm": 11.318232680292155
+            },
+            "model": {
+              "edge50_cm": -6.936227825466952,
+              "penumbra_80_20_mm": NaN
+            },
+            "edge_shift_model_vs_ref_mm": -2.512922248705056
+          },
+          "right": {
+            "ref": {
+              "edge50_cm": 6.035445946703456,
+              "penumbra_80_20_mm": 21.858937722994227
+            },
+            "model": {
+              "edge50_cm": 4.726358391451864,
+              "penumbra_80_20_mm": 30.613724965803183
+            },
+            "edge_shift_model_vs_ref_mm": -13.090875552515921
+          }
+        },
+        "10.0": {
+          "left": {
+            "ref": {
+              "edge50_cm": -6.604474770963995,
+              "penumbra_80_20_mm": 20.251385002669224
+            },
+            "model": {
+              "edge50_cm": -6.775982221096184,
+              "penumbra_80_20_mm": 4.776187689921159
+            },
+            "edge_shift_model_vs_ref_mm": -1.7150745013218938
+          },
+          "right": {
+            "ref": {
+              "edge50_cm": 4.284699841483716,
+              "penumbra_80_20_mm": 10.383150293670077
+            },
+            "model": {
+              "edge50_cm": 3.3894251191274276,
+              "penumbra_80_20_mm": 29.150376604136135
+            },
+            "edge_shift_model_vs_ref_mm": -8.952747223562888
+          }
+        }
+      }
+    }
+  },
+  "10mv_20x20": {
+    "cfm": {
+      "3pct_3mm": {
+        "pass_rate_pct": 87.68364338199108,
+        "n_valid": 467346
+      },
+      "2pct_2mm_clinico": {
+        "pass_rate_pct": 73.97517043047336,
+        "n_valid": 467346
+      },
+      "zscore_uncertainty": {
+        "mean_abs_z": 0.788611557022935,
+        "frac_within_2sigma_pct": 99.88928255093002,
+        "frac_within_3sigma_pct": 100.0,
+        "n_valid": 4516
+      },
+      "field_edges_by_depth_cm": {
+        "3.0": {
+          "left": {
+            "ref": {
+              "edge50_cm": -9.70186195538698,
+              "penumbra_80_20_mm": 3.5181375214805755
+            },
+            "model": {
+              "edge50_cm": -8.414156956226698,
+              "penumbra_80_20_mm": NaN
+            },
+            "edge_shift_model_vs_ref_mm": 12.877049991602814
+          },
+          "right": {
+            "ref": {
+              "edge50_cm": 8.020845239031692,
+              "penumbra_80_20_mm": NaN
+            },
+            "model": {
+              "edge50_cm": 8.054873995954186,
+              "penumbra_80_20_mm": NaN
+            },
+            "edge_shift_model_vs_ref_mm": 0.3402875692249374
+          }
+        },
+        "10.0": {
+          "left": {
+            "ref": {
+              "edge50_cm": -8.627529880419516,
+              "penumbra_80_20_mm": NaN
+            },
+            "model": {
+              "edge50_cm": -9.965620437089093,
+              "penumbra_80_20_mm": NaN
+            },
+            "edge_shift_model_vs_ref_mm": -13.380905566695773
+          },
+          "right": {
+            "ref": {
+              "edge50_cm": 9.28221997830929,
+              "penumbra_80_20_mm": 9.861810178992805
+            },
+            "model": {
+              "edge50_cm": 8.066795340300185,
+              "penumbra_80_20_mm": NaN
+            },
+            "edge_shift_model_vs_ref_mm": -12.154246380091038
+          }
+        }
+      }
+    },
+    "nsf": {
+      "3pct_3mm": {
+        "pass_rate_pct": 87.29891771835,
+        "n_valid": 467346
+      },
+      "2pct_2mm_clinico": {
+        "pass_rate_pct": 73.40963654337472,
+        "n_valid": 467346
+      },
+      "zscore_uncertainty": {
+        "mean_abs_z": 0.7998788766401065,
+        "frac_within_2sigma_pct": 99.93356953055802,
+        "frac_within_3sigma_pct": 100.0,
+        "n_valid": 4516
+      },
+      "field_edges_by_depth_cm": {
+        "3.0": {
+          "left": {
+            "ref": {
+              "edge50_cm": -9.70186195538698,
+              "penumbra_80_20_mm": 3.5181375214805755
+            },
+            "model": {
+              "edge50_cm": NaN,
+              "penumbra_80_20_mm": NaN
+            },
+            "edge_shift_model_vs_ref_mm": NaN
+          },
+          "right": {
+            "ref": {
+              "edge50_cm": 8.020845239031692,
+              "penumbra_80_20_mm": NaN
+            },
+            "model": {
+              "edge50_cm": 8.680053596199755,
+              "penumbra_80_20_mm": 6.927566786093635
+            },
+            "edge_shift_model_vs_ref_mm": 6.592083571680636
+          }
+        },
+        "10.0": {
+          "left": {
+            "ref": {
+              "edge50_cm": -8.627529880419516,
+              "penumbra_80_20_mm": NaN
+            },
+            "model": {
+              "edge50_cm": -9.975471988234181,
+              "penumbra_80_20_mm": NaN
+            },
+            "edge_shift_model_vs_ref_mm": -13.479421078146654
+          },
+          "right": {
+            "ref": {
+              "edge50_cm": 9.28221997830929,
+              "penumbra_80_20_mm": 9.861810178992805
+            },
+            "model": {
+              "edge50_cm": 8.161965704951369,
+              "penumbra_80_20_mm": NaN
+            },
+            "edge_shift_model_vs_ref_mm": -11.202542733579204
+          }
+        }
+      }
+    }
+  }
+}
