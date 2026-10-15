@@ -1,13 +1,28 @@
 *.pt
 *.pth
 *.h5
+*.hdf5
 *.root
 *.npy
+*.npz
+
+# Blocca tutta la cartella data ma preserva i metadati/manifest leggeri in CSV
 data/
+!data/metadata/
+!data/metadata/*.csv
+
 outputs/
 ritornati_finali/
+gen/
+runs/
+eval/
+
 __pycache__/
 *.pyc
+
+# File nativi TOPAS
+*.phsp
+*.header
 
 # Spazzatura cluster HPC
 *.pbs
@@ -18,4 +33,4 @@ __pycache__/
 *.out
 *.log
 *.tar.gz
-scripts*
+*.zip

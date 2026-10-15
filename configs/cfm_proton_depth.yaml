@@ -1,0 +1,39 @@
+# configs/cfm_default.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+# Configurazione di default per Conditional Flow Matching
+# Fase 3 della roadmap: modello condizionato multi-sorgente
+#
+# Uso:
+#   python train.py --config configs/cfm_default.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+
+model: cfm
+conditional: true
+
+# ── Dati ──────────────────────────────────────────────────────────────────────
+n_samples: 1000000      # totale su tutte le configurazioni
+# data_path: null       # se si vogliono dati GATE reali, specificare qui
+
+# ── Architettura ──────────────────────────────────────────────────────────────
+hidden_dim: 256
+n_layers: 4             # layer residuali nella velocity net
+# time_dim: 32          # dimensione sinusoidal time embedding
+# context_dim: 32       # dimensione condition embedding
+
+# ── Training ──────────────────────────────────────────────────────────────────
+epochs: 300
+batch_size: 4096        # più grande è meglio per CFM (loss MSE)
+lr: 0.001
+weight_decay: 0.00001
+clip_grad: 1.0
+val_every: 5
+save_every: 25
+seed: 42
+
+# ── Inferenza ─────────────────────────────────────────────────────────────────
+n_ode_steps: 50         # step DOPRI5 per validazione
+# fast: false           # true = Euler 10 step per produzione massiva
+
+# ── Output ────────────────────────────────────────────────────────────────────
+output_dir: outputs
+# run_name: cfm_conditional_v1
